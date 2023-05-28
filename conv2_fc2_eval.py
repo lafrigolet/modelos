@@ -11,13 +11,14 @@ import loaders
 parser = argparse.ArgumentParser(description="Select a random sample of files from a directory")
 
 parser.add_argument('-f', '--file', type=str, help="path to file to eval")
+parser.add_argument('-m', '--model', type=str, help="path to model file")
 
 # parse the arguments
 args = parser.parse_args()
 
 # Load the model
 network = model.Net()
-network.load_state_dict(torch.load('conv2_fc2_train.py_model.pth'))
+network.load_state_dict(torch.load(args.model))
 network.eval()
 
 image_width      = 150
