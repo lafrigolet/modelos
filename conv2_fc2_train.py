@@ -31,20 +31,7 @@ torch.backends.cudnn.enabled = True
 torch.manual_seed(random_seed)
 
 
-# In[51]:
-
-
-
-
-# In[62]:
-
-
-# In[100]:
-
 import conv2_fc2_model
-
-# In[101]:
-
 
 # NETWORK AND OPTIMIZER INITIALIZATION
 
@@ -76,15 +63,13 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                           batch_size=batch_size_test, 
                                           shuffle=False)
 
-tester1 = loaders.NetTester(test_loader, n_epochs)
-tester2 = loaders.NetTester(train_loader, n_epochs)
-trainer = loaders.NetTrainer(train_loader)
+model = loaders.Model(network)
 
 for epoch in range(1, n_epochs + 1):
-    trainer.train(network, optimizer, epoch)
+    model.train(train_loader, optimizer, epoch)
     if epoch % 10 == 0:
-        tester1.test(network, 'Test set')
-        tester2.test(network, 'Train set')
+        model.test(test_loader, 'Test set', n_epochs)
+        model.test(train_loader, 'Train set', n_epochs)
 
 
 plt.plot(trainer.train_losses())

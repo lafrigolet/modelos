@@ -101,12 +101,17 @@ class CustomDataset(torch.utils.data.Dataset):
 
 # TRAINING THE MODEL
 
-class NetTrainer:
+class Model():
 
-    def __init__(self, loader):
+    def __init__(self, network):
+        self.network       = network
         self.train_losses  = []
         self.train_counter = []
-        self.loader        = loader
+        self.test_losses   = []
+        self.test_counter  = []
+
+    def load(self, pth):
+        self.network.load_state_dict(torch.load(pth))
 
     def train_counter(self):
         return self.train_counter
@@ -114,92 +119,62 @@ class NetTrainer:
     def train_losses(self):
         return self.train_losses
         
-    def train(self, network, optimizer,epoch):
+    def test_losses(self):
+        return self.test_losses
+
+    def test_counter(self):
+        return self.test_counter
+        
+    def train(self, loader, optimizer, epoch):
         datos_pasados = 0
-        network.train()
-        for batch_idx, (data, target, filename) in enumerate(self.loader):
+        self.network.train()
+        for batch_idx, (data, target, filename) in enumerate(loader):
             datos_pasados += len(data)
             optimizer.zero_grad()
-            output = network(data)
+            output = self.network(data)
             loss = F.nll_loss(output, target)
             loss.backward()
             optimizer.step()
             #if batch_idx % log_interval == 0:
         print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-            epoch, datos_pasados, len(self.loader.dataset),
-            100. * batch_idx / len(self.loader), loss.item()))
+            epoch, datos_pasados, len(loader.dataset),
+            100. * batch_idx / len(loader), loss.item()))
         self.train_losses.append(loss.item())
         self.train_counter.append(
-            (batch_idx*64) + ((epoch-1)*len(self.loader.dataset)))
+            (batch_idx*64) + ((epoch-1)*len(loader.dataset)))
         filename = os.path.basename(sys.argv[0])
         filename_without_extension = os.path.splitext(filename)[0]
         modelname = filename + '_model.pth'
         optimizername = filename + '_optimizer.pth'
-        torch.save(network.state_dict(), modelname)
+        torch.save(self.network.state_dict(), modelname)
         torch.save(optimizer.state_dict(), optimizername)
 
-class NetTester:
-
-    def __init__(self, loader, n_epochs):
-        self.test_losses  = []
+    def test(self, loader, msg, n_epochs):
         self.test_counter = [i*len(loader.dataset) for i in range(n_epochs + 1)]
-        self.loader       = loader;
-
-    def test_losses(self):
-        return self.test_losses
-
-    def test_counter(self):
-        return self.test_counter
-        
-    def test(self, network, msg):
-        network.eval()
+        self.network.eval()
         test_loss = 0
         correct = 0
         with torch.no_grad():
-            for data, target, filename in self.loader:
+            for data, target, filename in loader:
                 #print('data', data.shape)
-                output = network(data)
+                output = self.network(data)
                 #print('output', output)
                 test_loss += F.nll_loss(output, target, size_average=False).item()
                 pred = output.data.max(1, keepdim=True)[1]
                 correct += pred.eq(target.data.view_as(pred)).sum()
-        test_loss /= len(self.loader.dataset)
+        test_loss /= len(loader.dataset)
         self.test_losses.append(test_loss)
         print('{}: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-            msg, test_loss, correct, len(self.loader.dataset),
-            100. * correct / len(self.loader.dataset)))
+            msg, test_loss, correct, len(loader.dataset),
+            100. * correct / len(loader.dataset)))
 
 
-class NetEval:
+    def eval(self, file, image_width, image_height):
+        self.network.eval()
 
-    def __init__(self, loader, n_epochs):
-        self.test_losses  = []
-        self.test_counter = [i*len(loader.dataset) for i in range(n_epochs + 1)]
-        self.loader       = loader;
+        normalized_img = normalize_png_file(file, (image_width, image_height))
+        output         = self.network(normalized_img)
+        #pred           = output.data.max(1, keepdim=True)[1]
 
-    def test_losses(self):
-        return self.test_losses
+        print('Result ', torch.exp(output))
 
-    def test_counter(self):
-        return self.test_counter
-        
-    def eval(self, network, msg):
-        network.eval()
-        test_loss = 0
-        correct = 0
-        with torch.no_grad():
-            for data, target in self.loader:
-                #print('data', data.shape)
-                output = network(data)
-                #print('output', output)
-                test_loss += F.nll_loss(output, target, size_average=False).item()
-                pred = output.data.max(1, keepdim=True)[1]
-                correct += pred.eq(target.data.view_as(pred)).sum()
-        test_loss /= len(self.loader.dataset)
-        self.test_losses.append(test_loss)
-        print('{}: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-            msg, test_loss, correct, len(self.loader.dataset),
-            100. * correct / len(self.loader.dataset)))
-
-
-        
