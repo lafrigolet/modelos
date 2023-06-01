@@ -1,19 +1,30 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-# In[1]:
-
-
 import torch
 import torchvision
 import matplotlib.pyplot as plt
 import os
 import torchvision.transforms as transforms
+import torch.nn.functional as F
+import machinehand_model
+import argparse
 
+# Create the parser
+parser = argparse.ArgumentParser(description='Command-line argument parser')
 
+# Add arguments
+parser.add_argument('-p', '--path', type=str, help='Path to the directory with files')
+parser.add_argument('-m', '--machinehand_model', type=str, help='pth file for machine hand written model')
+parser.add_argument('-b', '--batch_size_train', type=int, help='size of the batch for training')
+parser.add_argument('-s', '--batch_size_test', type=int, help='size of the batch for testing')
+parser.add_argument('-e', '--epochs', type=int, help='epochs')
+parser.add_argument('-l', '--learning_rate', type=float, help='learning rate')
+parser.add_argument('-w', '--cropped_width', type=int, help='cropped image width')
+parser.add_argument('-t', '--cropped_height', type=int, help='cropped image height')
 
-# In[50]:
-
+# Parse the command-line arguments
+args = parser.parse_args()
 
 # PREPARING THE DATASET
 n_epochs         = 70
@@ -31,22 +42,11 @@ torch.backends.cudnn.enabled = True
 torch.manual_seed(random_seed)
 
 
-import model
+machinehand_model = machinehand_model.MachineHandModel(args.learning_rate)
+machinehand_model.train(args.machinehand_model, args.path + '/train', args.path + '/test', args.batch_size_train, args.batch_size_test, args.epochs, args.cropped_width, args.cropped_height)
 
-# NETWORK AND OPTIMIZER INITIALIZATION
-
-import torch.nn.functional as F
-import torch.optim as optim
-
-network = model.Net()
-# optimizer = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
-optimizer = optim.Adam(network.parameters(), lr=learning_rate)
-# optimizer = optim.Rprop(network.parameters(), lr=learning_rate)
-
-import loaders
-model = loaders.Model(network, optimizer)
-model.train('./dataset/train', batch_size_train, './dataset/test', batch_size_test, n_epochs, image_width, image_height)
-
+# ./machinehand_train.py -p ./suicide_dataset -m ./machinehand_model.pth -b 64 -s 1000 -e 70 -w 150 -t 30 -l 0.0001
+"""
 plt.plot(trainer.train_losses())
 plt.xlabel('number of training examples seen')
 plt.ylabel('negative log likelihood loss')
@@ -119,3 +119,4 @@ for i in range(example_targets.shape[0]):
     plt.xticks([])
     plt.yticks([])
 
+"""
