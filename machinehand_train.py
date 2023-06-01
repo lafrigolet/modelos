@@ -31,46 +31,21 @@ torch.backends.cudnn.enabled = True
 torch.manual_seed(random_seed)
 
 
-import conv2_fc2_model
+import model
 
 # NETWORK AND OPTIMIZER INITIALIZATION
 
 import torch.nn.functional as F
 import torch.optim as optim
 
-network = conv2_fc2_model.Net()
+network = model.Net()
 # optimizer = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
 optimizer = optim.Adam(network.parameters(), lr=learning_rate)
 # optimizer = optim.Rprop(network.parameters(), lr=learning_rate)
 
 import loaders
-
-# Usar la base de datos construida
-train_dataset = loaders.CustomDataset()
-train_dataset.append_path("./dataset/train/0", 0, image_width, image_height)
-train_dataset.append_path("./dataset/train/1", 1, image_width, image_height)
-
-test_dataset = loaders.CustomDataset()
-test_dataset.append_path("./dataset/test/0", 0, image_width, image_height)
-test_dataset.append_path("./dataset/test/1", 1, image_width, image_height)
-
-
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=batch_size_train, 
-                                           shuffle=True)
-
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset, 
-                                          batch_size=batch_size_test, 
-                                          shuffle=False)
-
-model = loaders.Model(network)
-
-for epoch in range(1, n_epochs + 1):
-    model.train(train_loader, optimizer, epoch)
-    if epoch % 10 == 0:
-        model.test(test_loader, 'Test set', n_epochs)
-        model.test(train_loader, 'Train set', n_epochs)
-
+model = loaders.Model(network, optimizer)
+model.train('./dataset/train', batch_size_train, './dataset/test', batch_size_test, n_epochs, image_width, image_height)
 
 plt.plot(trainer.train_losses())
 plt.xlabel('number of training examples seen')

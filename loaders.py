@@ -82,14 +82,17 @@ class CustomDataset(torch.utils.data.Dataset):
         
         pass
 
-    def append_path(self, path, label, image_width, image_height):
+    def append_path(self, path, label, image_width, image_height):  # deprecated
         lista_imagenes = os.listdir(path)
         self.lista_imagenes += lista_imagenes 
         for file in lista_imagenes:
             normalized_img = normalize_png_file(path + '/' + file, (image_width, image_height))
             self.list_img.append(normalized_img)
             self.list_label.append(label)
-        
+
+    def append_images(self, images, label):
+        self.list_img   += images;
+        self.list_label += [label for i in len(images)]
     
     def __getitem__(self, index):
         return (self.list_img[index],self.list_label[index], self.lista_imagenes[index])
@@ -103,8 +106,9 @@ class CustomDataset(torch.utils.data.Dataset):
 
 class Model():
 
-    def __init__(self, network):
+    def __init__(self, network, optimizer):
         self.network       = network
+        self.optimizer     = optimizer
         self.train_losses  = []
         self.train_counter = []
         self.test_losses   = []
@@ -124,8 +128,8 @@ class Model():
 
     def test_counter(self):
         return self.test_counter
-        
-    def train(self, loader, optimizer, epoch):
+
+    def train_helper(self, loader, optimizer, epoch):
         datos_pasados = 0
         self.network.train()
         for batch_idx, (data, target, filename) in enumerate(loader):
@@ -149,6 +153,36 @@ class Model():
         torch.save(self.network.state_dict(), modelname)
         torch.save(optimizer.state_dict(), optimizername)
 
+
+
+    def train(self, train_path, batch_size_train, test_path, batch_size_test, n_epochs, image_width, image_height):
+        # Usar la base de datos construida
+        train_dataset = CustomDataset()
+        train_dataset.append_path(train_path + '/0', 0, image_width, image_height)
+        train_dataset.append_path(train_path + '/1', 1, image_width, image_height)
+
+        test_dataset = CustomDataset()
+        test_dataset.append_path(test_path + '/0', 0, image_width, image_height)
+        test_dataset.append_path(test_path + '/1', 1, image_width, image_height)
+        
+        train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                                   batch_size=batch_size_train, 
+                                                   shuffle=True)
+        
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, 
+                                                  batch_size=batch_size_test, 
+                                                  shuffle=False)
+        
+        # Train the model
+        
+        for epoch in range(1, n_epochs + 1):
+            self.train_helper(train_loader, self.optimizer, epoch)
+            if epoch % 10 == 0:
+                self.test(test_loader, 'Test set', n_epochs)
+                self.test(train_loader, 'Train set', n_epochs)
+
+
+                
     def test(self, loader, msg, n_epochs):
         self.test_counter = [i*len(loader.dataset) for i in range(n_epochs + 1)]
         self.network.eval()
@@ -176,5 +210,5 @@ class Model():
         output         = self.network(normalized_img)
         #pred           = output.data.max(1, keepdim=True)[1]
 
-        print('Result ', torch.exp(output))
+        return torch.exp(output)
 

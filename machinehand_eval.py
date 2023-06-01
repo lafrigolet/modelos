@@ -3,7 +3,7 @@
 
 import torch
 import torch.nn as nn
-import conv2_fc2_model as model
+import model
 import argparse
 import loaders
 
@@ -18,11 +18,13 @@ args = parser.parse_args()
 
 # Load the model
 network = model.Net()
-model = loaders.Model(network)
+model = loaders.Model(network, None)
 model.load(args.model)
 
 image_width    = 150
 image_height   = 30
-model.eval(args.file, image_width, image_height)
+output = model.eval(args.file, image_width, image_height)
+print('Result ', torch.exp(output))
+
 
 
