@@ -42,8 +42,10 @@ torch.backends.cudnn.enabled = True
 torch.manual_seed(random_seed)
 
 
-machinehand_model = machinehand_model.MachineHandModel(args.learning_rate)
-machinehand_model.train(args.machinehand_model, args.path + '/train', args.path + '/test', args.batch_size_train, args.batch_size_test, args.epochs, args.cropped_width, args.cropped_height)
+machinehand_model = machinehand_model.MachineHandModel()
+machinehand_model.train(args.machinehand_model, args.learning_rate, args.path + '/train',
+                        args.path + '/test', args.batch_size_train, args.batch_size_test,
+                        args.epochs, args.cropped_width, args.cropped_height)
 
 # ./machinehand_train.py -m machinehand_model -p ./machinehand_dataset -b 64 -s 1000 -e 70 -w 150 -t 30 -l 0.0001
 

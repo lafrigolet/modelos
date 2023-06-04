@@ -1,60 +1,119 @@
-# CNN DEFINITION
-
-import torch.nn as nn
+import torch
+import os
+from PIL import Image
+import torch.optim as optim
+import matplotlib.pyplot as plt
 import torch.nn.functional as F
+import sys
+import custom_dataset
+from helpers import normalize_images as NI
+import net
 
-class Net(nn.Module):
-        
+class Model():
+
     def __init__(self):
-        super(Net, self).__init__()
-        layers_in_last_conv = 20
-        rows = 30
-        cols = 150
-        kernel_size = 5
+        self.network       = net.Net()
+        self.train_losses  = []
+        self.train_counter = []
+        self.test_losses   = []
+        self.test_counter  = []
+
+    def load(self, pth):
+        self.network.load_state_dict(torch.load(pth))
+
+    def train_counter(self):
+        return self.train_counter
+
+    def train_losses(self):
+        return self.train_losses
         
-        # First convolutional layer with 1 input channel, 10 output channels, and kernel size of 5
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=kernel_size)
-        rows = rows - (kernel_size - 1)
-        cols = cols - (kernel_size - 1)
-        rows = rows // 2
-        cols = cols // 2
-        # Second convolutional layer with 10 input channels, 20 output channels, and kernel size of 5
-        self.conv2 = nn.Conv2d(10, layers_in_last_conv, kernel_size=kernel_size)
-        rows = rows -(kernel_size - 1)
-        cols = cols - (kernel_size - 1)
-        rows = rows // 2
-        cols = cols // 2
-        # Dropout layer to prevent overfitting
-        self.conv2_drop = nn.Dropout2d() 
+    def test_losses(self):
+        return self.test_losses
+
+    def test_counter(self):
+        return self.test_counter
+
+    def train(self, machinehand_model, learning_rate, train_path, test_path, batch_size_train, batch_size_test, n_epochs, image_width, image_height):
+        # optimizer         = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
+        self.optimizer     = optim.Adam(self.network.parameters(), lr=learning_rate)
+        # optimizer         = optim.Rprop(network.parameters(), lr=learning_rate)
+
+        def train_helper(loader, epoch):
+            datos_pasados = 0
+            self.network.train()
+            for batch_idx, (data, target) in enumerate(loader):
+                datos_pasados += len(data)
+                self.optimizer.zero_grad()
+                output = self.network(data)
+                loss = F.nll_loss(output, target)
+                loss.backward()
+                self.optimizer.step()
+            #if batch_idx % log_interval == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch, datos_pasados, len(loader.dataset),
+                    100. * batch_idx / len(loader), loss.item()))
+            self.train_losses.append(loss.item())
+            self.train_counter.append(
+                (batch_idx*64) + ((epoch-1)*len(loader.dataset)))
         
-        self.__neurons_in_first_fully_connected = layers_in_last_conv * rows * cols
-        # First fully connected layer with 6120 input features and 50 output features
-        self.fc1 = nn.Linear(self.__neurons_in_first_fully_connected, 50)
-        # Second fully connected layer with 50 input features and 1 output features
-        self.fc2 = nn.Linear(50, 2) 
+        # Usar la base de datos construida
+        # Usar la base de datos construida
+        train_dataset = custom_dataset.CustomDataset()
+        train_dataset.append_images(self.cook_images(train_path + '/0', 0, image_width, image_height), 0)
+        train_dataset.append_images(self.cook_images(train_path + '/1', 1, image_width, image_height), 1)
 
-    def forward(self, input_data):
-        # Apply first convolutional layer, ReLU activation function, and max pooling with a 2x2 kernel size
-        x = self.conv1(input_data)
-        # print('conv2d 1', x.shape)
-        x = F.relu(F.max_pool2d(x, 2)) 
-        # print('relu 1', x.shape)
-        # print('conv2d 1', x.shape) # conv2d 1 torch.Size([1, 10, 23, 73])
-        # Apply second convolutional layer, dropout, ReLU activation function, and max pooling with a 2x2 kernel size
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        # print('conv2d 2', x.shape) # conv2d 2 torch.Size([1, 20, 9, 34])
-        # Reshape output from convolutional layers to fit fully connected layers
-        # x = x.view(-1, 70720)
-        x = x.view(-1, self.__neurons_in_first_fully_connected)
-        # Apply ReLU activation function to first fully connected layer
-        x = F.relu(self.fc1(x))
-        # Apply dropout layer to prevent overfitting
-        x = F.dropout(x, training=self.training)
-        # Apply second fully connected layer
-        x = self.fc2(x)
-        # Apply log softmax activation function to output of the network
-        return F.log_softmax(x)
+        test_dataset = custom_dataset.CustomDataset()
+        test_dataset.append_images(self.cook_images(test_path + '/0', 0, image_width, image_height), 0)
+        test_dataset.append_images(self.cook_images(test_path + '/1', 1, image_width, image_height), 1)
+
+        train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                                   batch_size=batch_size_train, 
+                                                   shuffle=True)
+        
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, 
+                                                  batch_size=batch_size_test, 
+                                                  shuffle=False)
+
+        # Train the model
+        
+        for epoch in range(1, n_epochs + 1):
+            train_helper(train_loader, epoch)
+
+            if epoch % 10 == 0:
+                self.test(test_loader, 'Test set', n_epochs)
+                self.test(train_loader, 'Train set', n_epochs)
+
+        torch.save(self.network.state_dict(), machinehand_model + '.pth')
+        torch.save(self.optimizer.state_dict(), machinehand_model + '_optimizer.pth')
 
 
 
-    
+                
+    def test(self, loader, msg, n_epochs):
+        self.test_counter = [i*len(loader.dataset) for i in range(n_epochs + 1)]
+        self.network.eval()
+        test_loss = 0
+        correct = 0
+        with torch.no_grad():
+            for data, target in loader:
+                #print('data', data.shape)
+                output = self.network(data)
+                #print('output', output)
+                test_loss += F.nll_loss(output, target, size_average=False).item()
+                pred = output.data.max(1, keepdim=True)[1]
+                correct += pred.eq(target.data.view_as(pred)).sum()
+        test_loss /= len(loader.dataset)
+        self.test_losses.append(test_loss)
+        print('{}: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+            msg, test_loss, correct, len(loader.dataset),
+            100. * correct / len(loader.dataset)))
+
+
+    def eval(self, file, image_width, image_height):
+        self.network.eval()
+
+        normalized_img = normalize_png_file(file, (image_width, image_height))
+        output         = self.network(normalized_img)
+        #pred           = output.data.max(1, keepdim=True)[1]
+
+        return torch.exp(output)
