@@ -1,14 +1,13 @@
 import torch
 import os
 from PIL import Image
-import torchvision.transforms.functional as TF
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import sys
 import custom_dataset
 import model
-
+from helpers import normalize_images as NI
 
 class MachineHandModel():
 
@@ -37,26 +36,48 @@ class MachineHandModel():
     def test_counter(self):
         return self.test_counter
 
-    def train_helper(self, loader, optimizer, epoch):
-        datos_pasados = 0
-        self.network.train()
-        for batch_idx, (data, target, filename) in enumerate(loader):
-            datos_pasados += len(data)
-            optimizer.zero_grad()
-            output = self.network(data)
-            loss = F.nll_loss(output, target)
-            loss.backward()
-            optimizer.step()
-            #if batch_idx % log_interval == 0:
-        print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-            epoch, datos_pasados, len(loader.dataset),
-            100. * batch_idx / len(loader), loss.item()))
-        self.train_losses.append(loss.item())
-        self.train_counter.append(
-            (batch_idx*64) + ((epoch-1)*len(loader.dataset)))
 
     def train(self, machinehand_model, train_path, test_path, batch_size_train, batch_size_test, n_epochs, image_width, image_height):
+        def train_helper(loader, epoch):
+            datos_pasados = 0
+            self.network.train()
+            for batch_idx, (data, target) in enumerate(loader):
+                datos_pasados += len(data)
+                self.optimizer.zero_grad()
+                output = self.network(data)
+                loss = F.nll_loss(output, target)
+                loss.backward()
+                self.optimizer.step()
+            #if batch_idx % log_interval == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch, datos_pasados, len(loader.dataset),
+                    100. * batch_idx / len(loader), loss.item()))
+            self.train_losses.append(loss.item())
+            self.train_counter.append(
+                (batch_idx*64) + ((epoch-1)*len(loader.dataset)))
+
+        
+        def cook_images(path, label, image_width, image_height):
+            files = os.listdir(path)
+            normalized_images = []
+            
+            for file in files:
+                img = Image.open(path + '/' + file)
+                normalized_images.append(NI.normalize_image(img, image_width, image_height))
+
+            return normalized_images
+
+        
         # Usar la base de datos construida
+        # Usar la base de datos construida
+        train_dataset = custom_dataset.CustomDataset()
+        train_dataset.append_images(cook_images(train_path + '/0', 0, image_width, image_height), 0)
+        train_dataset.append_images(cook_images(train_path + '/1', 1, image_width, image_height), 1)
+
+        test_dataset = custom_dataset.CustomDataset()
+        test_dataset.append_images(cook_images(test_path + '/0', 0, image_width, image_height), 0)
+        test_dataset.append_images(cook_images(test_path + '/1', 1, image_width, image_height), 1)
+        """
         train_dataset = custom_dataset.CustomDataset()
         train_dataset.append_path(train_path + '/0', 0, image_width, image_height)
         train_dataset.append_path(train_path + '/1', 1, image_width, image_height)
@@ -64,7 +85,7 @@ class MachineHandModel():
         test_dataset = custom_dataset.CustomDataset()
         test_dataset.append_path(test_path + '/0', 0, image_width, image_height)
         test_dataset.append_path(test_path + '/1', 1, image_width, image_height)
-        
+        """
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                    batch_size=batch_size_train, 
                                                    shuffle=True)
@@ -72,11 +93,12 @@ class MachineHandModel():
         test_loader = torch.utils.data.DataLoader(dataset=test_dataset, 
                                                   batch_size=batch_size_test, 
                                                   shuffle=False)
-        
+
         # Train the model
         
         for epoch in range(1, n_epochs + 1):
-            self.train_helper(train_loader, self.optimizer, epoch)
+            train_helper(train_loader, epoch)
+
             if epoch % 10 == 0:
                 self.test(test_loader, 'Test set', n_epochs)
                 self.test(train_loader, 'Train set', n_epochs)
@@ -93,7 +115,7 @@ class MachineHandModel():
         test_loss = 0
         correct = 0
         with torch.no_grad():
-            for data, target, filename in loader:
+            for data, target in loader:
                 #print('data', data.shape)
                 output = self.network(data)
                 #print('output', output)
