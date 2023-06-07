@@ -22,16 +22,7 @@ class CustomDataset(torch.utils.data.Dataset):
         # print(len(self.list_label))
         
         pass
-    """
-    def append_path(self, path, label, image_width, image_height):  # deprecated
-        lista_imagenes = os.listdir(path)
-        self.lista_imagenes += lista_imagenes
-        normalized_images = []
-        for file in lista_imagenes:
-            normalized_images.append(normalize_png_file(path + '/' + file, (image_width, image_height)))
 
-        self.append_images(normalized_images, label)
-    """
     def append_images(self, images, label):
         self.list_img   += images;
         self.list_label += [label for _ in range(len(images))]
