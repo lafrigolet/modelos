@@ -19,9 +19,8 @@ args = parser.parse_args()
 
 # Load the model
 mhm = machinehand_model.MachineHandModel()
-#print(machinehand_model)
-#mhm.load(args.model)
-output = mhm.eval(args.model, args.path, args.cropped_width, args.cropped_height)
+mhm.load(args.model)
+output = mhm.eval(args.path, args.cropped_width, args.cropped_height)
 
 
 for t in output:

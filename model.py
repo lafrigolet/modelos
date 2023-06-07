@@ -109,12 +109,9 @@ class Model():
             msg, test_loss, correct, len(loader.dataset),
             100. * correct / len(loader.dataset)))
 
-    def eval(self, pth, path, image_width, image_height):
+    def eval(self, path, image_width, image_height):
         dataset = custom_dataset.CustomDataset()
         dataset.append_images(self.cook_images(path, 0, image_width, image_height), 0) # label doesn't matter
-        
-        self.network.load_state_dict(torch.load(pth))
-        
         self.network.eval()
 
         with torch.no_grad():
