@@ -98,7 +98,8 @@ class Model():
             for data, target in loader:
                 #print('data', data.shape)
                 output = self.network(data)
-                #print('output', output)
+                #for t in torch.exp(output):
+                #    print('[{:.4f}, {:.4f}]'.format(t[0], t[1]))
                 test_loss += F.nll_loss(output, target, size_average=False).item()
                 pred = output.data.max(1, keepdim=True)[1]
                 correct += pred.eq(target.data.view_as(pred)).sum()
@@ -112,25 +113,11 @@ class Model():
         dataset = custom_dataset.CustomDataset()
         dataset.append_images(self.cook_images(path, 0, image_width, image_height), 0) # label doesn't matter
         
-        loader = torch.utils.data.DataLoader(dataset=dataset)
+        self.network.load_state_dict(torch.load(pth))
         
-
         self.network.eval()
 
-
         with torch.no_grad():
-            result = [torch.exp(self.network(data)) for data, target in loader]
-            """
-            for data, target in loader:
-                #print('data', data.shape)
-                output = self.network(data)
-                #print('output', output)
-                result.append(output)
-            
-        img = Image.open(file)
-        normalized_img = NI.normalize_image(img, image_width, image_height)
-        output         = self.network(normalized_img)
-        #pred           = output.data.max(1, keepdim=True)[1]
-            """
+            result = [torch.exp(self.network(data)) for data, target in dataset]
             
         return result

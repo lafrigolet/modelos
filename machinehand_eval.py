@@ -20,9 +20,13 @@ args = parser.parse_args()
 # Load the model
 mhm = machinehand_model.MachineHandModel()
 #print(machinehand_model)
+#mhm.load(args.model)
 output = mhm.eval(args.model, args.path, args.cropped_width, args.cropped_height)
 
-print('Result ', output)
+
+for t in output:
+    print('[{:.4f}, {:.4f}]'.format(t[0][0], t[0][1]))
+
 
 # ./machinehand_eval.py -p ./machinehand_dataset/train/0  -m machinehand_model.pth -w 150 -t 30
 
