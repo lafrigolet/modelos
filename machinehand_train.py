@@ -27,15 +27,9 @@ parser.add_argument('-t', '--cropped_height', type=int, help='cropped image heig
 args = parser.parse_args()
 
 # PREPARING THE DATASET
-n_epochs         = 70
-batch_size_train = 64
-batch_size_test  = 1000
-learning_rate    = 0.0001
 momentum         = 0.5
 log_interval     = 20
 dropout          = 20 # percentaje
-image_width      = 150
-image_height     = 30
 
 random_seed = 1
 torch.backends.cudnn.enabled = True

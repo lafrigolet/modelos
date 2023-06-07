@@ -1,11 +1,5 @@
-import torch
 import os
 from PIL import Image
-import torch.optim as optim
-import matplotlib.pyplot as plt
-import torch.nn.functional as F
-import sys
-import custom_dataset
 import model
 from helpers import normalize_images as NI
 

@@ -3,28 +3,26 @@
 
 import torch
 import torch.nn as nn
-import model
+import machinehand_model
 import argparse
-import loaders
 
 # create the argument parser
 parser = argparse.ArgumentParser(description="Select a random sample of files from a directory")
 
 parser.add_argument('-f', '--file',  type=str, help="path to file to eval")
-parser.add_argument('-m', '--model', type=str, help="path to model file")
+parser.add_argument('-p', '--pth', type=str, help="path to model pth file")
+parser.add_argument('-w', '--cropped_width', type=int, help='cropped image width')
+parser.add_argument('-t', '--cropped_height', type=int, help='cropped image height')
 
 # parse the arguments
 args = parser.parse_args()
 
 # Load the model
-network = model.Net()
-model = loaders.Model(network, None)
-model.load(args.model)
+mhm = machinehand_model.MachineHandModel()
+#print(machinehand_model)
+output = mhm.eval(args.pth, args.file, args.cropped_width, args.cropped_height)
 
-image_width    = 150
-image_height   = 30
-output = model.eval(args.file, image_width, image_height)
-print('Result ', torch.exp(output))
+print('Result ', output)
 
 
 

@@ -9,8 +9,8 @@ import custom_dataset
 from helpers import normalize_images as NI
 import net
 
-class Model():
 
+class Model():
     def __init__(self):
         self.network       = net.Net()
         self.train_losses  = []
@@ -33,7 +33,10 @@ class Model():
     def test_counter(self):
         return self.test_counter
 
-    def train(self, machinehand_model, learning_rate, train_path, test_path, batch_size_train, batch_size_test, n_epochs, image_width, image_height):
+    def cook_images(self, path, label, image_width, image_height): # template method
+        raise NotImplementedError()
+    
+    def train(self, output_pth_file, learning_rate, train_path, test_path, batch_size_train, batch_size_test, n_epochs, image_width, image_height):
         # optimizer         = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
         self.optimizer     = optim.Adam(self.network.parameters(), lr=learning_rate)
         # optimizer         = optim.Rprop(network.parameters(), lr=learning_rate)
@@ -83,12 +86,9 @@ class Model():
                 self.test(test_loader, 'Test set', n_epochs)
                 self.test(train_loader, 'Train set', n_epochs)
 
-        torch.save(self.network.state_dict(), machinehand_model + '.pth')
-        torch.save(self.optimizer.state_dict(), machinehand_model + '_optimizer.pth')
+        torch.save(self.network.state_dict(), output_pth_file + '.pth')
+        torch.save(self.optimizer.state_dict(), output_pth_file + '_optimizer.pth')
 
-
-
-                
     def test(self, loader, msg, n_epochs):
         self.test_counter = [i*len(loader.dataset) for i in range(n_epochs + 1)]
         self.network.eval()
@@ -108,12 +108,29 @@ class Model():
             msg, test_loss, correct, len(loader.dataset),
             100. * correct / len(loader.dataset)))
 
+    def eval(self, pth, path, image_width, image_height):
+        dataset = custom_dataset.CustomDataset()
+        dataset.append_images(self.cook_images(path, 0, image_width, image_height), 0) # label doesn't matter
+        
+        loader = torch.utils.data.DataLoader(dataset=dataset)
+        
 
-    def eval(self, file, image_width, image_height):
         self.network.eval()
 
-        normalized_img = normalize_png_file(file, (image_width, image_height))
+
+        with torch.no_grad():
+            result = [torch.exp(self.network(data)) for data, target in loader]
+            """
+            for data, target in loader:
+                #print('data', data.shape)
+                output = self.network(data)
+                #print('output', output)
+                result.append(output)
+            
+        img = Image.open(file)
+        normalized_img = NI.normalize_image(img, image_width, image_height)
         output         = self.network(normalized_img)
         #pred           = output.data.max(1, keepdim=True)[1]
-
-        return torch.exp(output)
+            """
+            
+        return result
