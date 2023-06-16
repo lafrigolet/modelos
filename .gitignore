@@ -2,5 +2,7 @@
 machinehand_dataset/
 suicide_dataset/
 __pycache__/
+suicide_dataset.small/
+temp/
 #*
 .#*
