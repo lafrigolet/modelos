@@ -396,8 +396,8 @@ def handwritten_text_line_detection(
     if dilate_ink:
         img = cv2.erode(img,np.ones((3,3)))
         
-    plt.imshow(img, cmap = "gray")
-    plt.show()
+    #plt.imshow(img, cmap = "gray")
+    #plt.show()
     
     page = Page(img, 
                 separation_threshold = mm2pix(separation_threshold,dpi),
@@ -405,8 +405,8 @@ def handwritten_text_line_detection(
                 break_connected_lines = break_connected_lines,
                 word_join_threshold = mm2pix(word_join_threshold,dpi))
     
-    plt.imshow(page.get_image(), cmap = "gray")
-    plt.show()
+    #plt.imshow(page.get_image(), cmap = "gray")
+    #plt.show()
 
     return page
 
@@ -492,8 +492,8 @@ def crop_page_to_dir(input_image_path, outputdir = '.', h=30, w=150):
     for i, cropped_image in enumerate(cropped_images):
         filepath = outputdir + '/cropped_image_' + str(i) + '.jpg'
         print(filepath)
-        plt.imshow(cropped_image, cmap = "gray")
-        plt.show()
+        #plt.imshow(cropped_image, cmap = "gray")
+        #plt.show()
         cv2.imwrite(filepath, cropped_image)
 
 #crop_page_to_dir('dataset/source/176-1.png', 'dataset/source/0')
