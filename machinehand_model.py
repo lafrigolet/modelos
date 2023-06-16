@@ -5,7 +5,7 @@ from helpers import normalize_images as NI
 
 class MachineHandModel(model.Model):
 
-    def cook_images(self, path, label, image_width, image_height):
+    def cook_images(self, path, image_width, image_height):
         files = os.listdir(path)
         normalized_images = []
             

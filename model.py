@@ -62,12 +62,12 @@ class Model():
         # Usar la base de datos construida
         # Usar la base de datos construida
         train_dataset = custom_dataset.CustomDataset()
-        train_dataset.append_images(self.cook_images(train_path + '/0', 0, image_width, image_height), 0)
-        train_dataset.append_images(self.cook_images(train_path + '/1', 1, image_width, image_height), 1)
+        train_dataset.append_images(self.cook_images(train_path + '/0', image_width, image_height), 0)
+        train_dataset.append_images(self.cook_images(train_path + '/1', image_width, image_height), 1)
 
         test_dataset = custom_dataset.CustomDataset()
-        test_dataset.append_images(self.cook_images(test_path + '/0', 0, image_width, image_height), 0)
-        test_dataset.append_images(self.cook_images(test_path + '/1', 1, image_width, image_height), 1)
+        test_dataset.append_images(self.cook_images(test_path + '/0', image_width, image_height), 0)
+        test_dataset.append_images(self.cook_images(test_path + '/1', image_width, image_height), 1)
 
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                    batch_size=batch_size_train, 
@@ -116,7 +116,7 @@ class Model():
                          
     def eval(self, path, image_width, image_height):
         dataset = custom_dataset.CustomDataset()
-        dataset.append_images(self.cook_images(path, 0, image_width, image_height), 0) # label doesn't matter
+        dataset.append_images(self.cook_images(path, image_width, image_height), 0) # label doesn't matter
         self.network.eval()
 
         with torch.no_grad():
