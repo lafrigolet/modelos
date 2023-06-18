@@ -59,6 +59,7 @@ class Model():
             for batch_idx, (data, target) in enumerate(loader):
                 datos_pasados += len(data)
                 self.optimizer.zero_grad()
+                data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 output = self.network(data)
                 loss = F.nll_loss(output, target)
                 loss.backward()
@@ -109,6 +110,7 @@ class Model():
         with torch.no_grad():
             for data, target in loader:
                 #print('data', data.shape)
+                data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu")
                 output = self.network(data)
                 #for t in torch.exp(output):
                 #    print('[{:.4f}, {:.4f}]'.format(t[0], t[1]))
@@ -124,6 +126,8 @@ class Model():
     def eval_image(self, img, image_width, image_height):
         self.network.eval()
 
+        img = img.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+                       
         return torch.exp(self.network(img))
                          
     def eval(self, path, image_width, image_height):
@@ -132,6 +136,7 @@ class Model():
         self.network.eval()
 
         with torch.no_grad():
+            data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
             result = [torch.exp(self.network(data)) for data, target in dataset]
             
         return result
