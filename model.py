@@ -61,6 +61,7 @@ class Model():
                 self.optimizer.zero_grad()
                 data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 output = self.network(data)
+                target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 loss = F.nll_loss(output, target)
                 loss.backward()
                 self.optimizer.step()
@@ -114,6 +115,7 @@ class Model():
                 output = self.network(data)
                 #for t in torch.exp(output):
                 #    print('[{:.4f}, {:.4f}]'.format(t[0], t[1]))
+                target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 test_loss += F.nll_loss(output, target, size_average=False).item()
                 pred = output.data.max(1, keepdim=True)[1]
                 correct += pred.eq(target.data.view_as(pred)).sum()
