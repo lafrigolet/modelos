@@ -110,7 +110,7 @@ class Model():
         with torch.no_grad():
             for data, target in loader:
                 #print('data', data.shape)
-                data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 output = self.network(data)
                 #for t in torch.exp(output):
                 #    print('[{:.4f}, {:.4f}]'.format(t[0], t[1]))
