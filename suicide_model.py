@@ -88,3 +88,26 @@ class SuicideModel(model.Model):
         print('Suicide Score for ', file, ': ', suicide_score)
         return suicide_score
 
+
+    def histogram(self, file, image_height, image_width):
+        self.suicide_model = self.network
+#        if self.suicide_model == None:
+#            raise Exception('No suicide model specified to eval suicide_score')
+                
+        def suicide(img):
+            output = self.eval_image(img, image_width, image_height)
+            return output.data[0][1].item()  # output[0][1] is probability of suicide
+
+
+        img                = cv2.imread(file, 0)
+        handwritten_images = self.preprocess(img, image_width, image_height)
+        suicide_scores     = [suicide(img) for img in handwritten_images]
+
+        histogram = [0 for _ in range(10)]
+        for score in suicide_scores:
+            index = int(round(score, 1) * 10)
+            histogram[index] += 1
+
+        print(histogram)
+
+        return histogram

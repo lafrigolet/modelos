@@ -6,3 +6,6 @@ suicide_dataset.small/
 temp/
 #*
 .#*
+machinehand_dataset.tar
+suicide_dataset.small.tar
+suicide_dataset.tar

@@ -4,6 +4,7 @@
 import suicide_model as SM
 import os
 import argparse
+import matplotlib.pyplot as plt
 
 # Create the parser
 parser = argparse.ArgumentParser(description='Command-line argument parser')
@@ -21,14 +22,33 @@ args = parser.parse_args()
 suicide_model = SM.SuicideModel(args.machinehand_model)
 suicide_model.load(args.suicide_model)
 
-files = os.listdir(args.path)
+files = os.listdir(args.path + '/0')
 
-files = [args.path + '/' + f for f in files]
+files = [args.path + '/0/' + f for f in files]
 
 for file in files:
     print(file)
-    suicide_model.suicide_score(file, args.cropped_height, args.cropped_width)
+    #suicide_model.suicide_score(file, args.cropped_height, args.cropped_width)
+    histogram = suicide_model.histogram(file, args.cropped_height, args.cropped_width)
+    #plt.plot(histogram, color = 'blue', label = 'negativos')
+    plt.plot(histogram, color = 'blue')
 
+files = os.listdir(args.path + '/1')
+
+files = [args.path + '/1/' + f for f in files]
+
+for file in files:
+    print(file)
+    #suicide_model.suicide_score(file, args.cropped_height, args.cropped_width)
+    histogram = suicide_model.histogram(file, args.cropped_height, args.cropped_width)
+    #plt.plot(histogram, color = 'red', label = 'positivos')
+    plt.plot(histogram, color = 'red')
+
+plt.xlabel('score index')
+plt.ylabel('frequency')
+plt.title('Suicide Score')
+plt.legend()
+plt.show()
 
 # ./suicide_eval.py -p ./suicide_dataset/test/1 -m ./machinehand_model.pth -s ./suicide_model.pth -w 150 -t 30 
     
