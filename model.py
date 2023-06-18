@@ -18,6 +18,18 @@ class Model():
         self.test_losses   = []
         self.test_counter  = []
 
+        # Move the model to the GPU if available
+        if torch.cuda.is_available():
+            self.network.to(torch.device("cuda"))
+
+        # Check the device of the model's parameters
+        param_device = next(self.network.parameters()).device
+
+        if param_device.type == "cuda":
+            print("Model is using GPU.")
+        else:
+            print("Model is using CPU.")
+
     def load(self, pth):
         self.network.load_state_dict(torch.load(pth))
 
