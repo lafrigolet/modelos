@@ -56,7 +56,7 @@ class SuicideModel(model.Model):
         """
         return handwritten_images
     
-    def cook_images(self, path, image_width, image_height):
+    def cook_images_bak(self, path, image_width, image_height):
         files = os.listdir(path)
         handwritten_images = []
         
@@ -68,7 +68,37 @@ class SuicideModel(model.Model):
         print('len(handwritten_images): ', len(handwritten_images))
         
         return handwritten_images
+
+
+    def cook_images(self, path, image_width, image_height):
+        print(path)
+        path_list = path.split('/')
+        path_list[1] += '.cooked'
+        cooked_path = '/'.join(path_list)
+        print(cooked_path)
+
+
+        if not os.path.exists(cooked_path) or not os.listdir(cooked_path):
+            os.makedirs(cooked_path, exist_ok = True)
+            files = os.listdir(path)
+            i = 0
+            for file in files:
+                print(path + '/' + file)
+                img = cv2.imread(path + '/' + file, 0)
+                cv2_cropped_images = self.crop_image(img, image_width, image_height)
+                for cropped_image in cv2_cropped_images:
+                    cv2.imwrite(cooked_path + '/cropped_image_' + str(i) + '.jpg', cropped_image)
+                    i += 1
+
+        cooked_images      = os.listdir(cooked_path)
+        cv2_cropped_images = [cv2.imread(cooked_path + '/' + file, 0) for file in cooked_images]
+        pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
+        normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
+        handwritten_images = [img for img in normalized_images if self.hand_written(img, image_width, image_height)]
         
+        print('len(handwritten_images): ', len(handwritten_images))
+
+        return handwritten_images
         
     def suicide_score(self, file, image_height, image_width):
         self.suicide_model = self.network
