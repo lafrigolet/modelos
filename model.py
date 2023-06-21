@@ -9,6 +9,8 @@ import custom_dataset
 from helpers import normalize_images as NI
 import net
 import torchvision.transforms.functional as TF
+from sklearn.metrics import roc_curve
+import math
 
 class Model():
     def __init__(self):
@@ -112,9 +114,41 @@ class Model():
                 self.test(test_loader, 'Test set', n_epochs)
                 self.test(train_loader, 'Train set', n_epochs)
 
+        self.roc_curve(test_loader)
         torch.save(self.network.state_dict(), output_pth_file + '.pth')
         torch.save(self.optimizer.state_dict(), output_pth_file + '_optimizer.pth')
 
+
+    def roc_curve(self, loader):
+        self.network.eval()
+        x = []
+        y = []
+#        x = x.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+#        y = y.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        with torch.no_grad():
+            for data, target in loader:
+                #data   = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+                output = self.network(data)
+                #target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu")).numpy()
+                output = output[:,1]
+                x += output
+                y += target
+
+        x = [math.exp(i) for i in x]
+        fpr, tpr, thresholds = roc_curve(y,x)
+        plt.plot(fpr,tpr,color="blue")
+        plt.grid()
+        plt.xlabel("FPR (especifidad)", fontsize=12, labelpad=10)
+        plt.ylabel("TPR (sensibilidad, Recall)", fontsize=12, labelpad=10)
+        plt.title("ROC de suicidios", fontsize=14)
+        
+        for cont in range(0,len(thresholds)):
+            if not cont % 100:
+                plt.text(fpr[cont], tpr[cont], "  {:.2f}".format(thresholds[cont]),color="blue")
+                plt.plot(fpr[cont], tpr[cont],"o",color="blue")
+
+        plt.show()
+        
     def test(self, loader, msg, n_epochs):
         self.test_counter = [i*len(loader.dataset) for i in range(n_epochs + 1)]
         self.network.eval()
