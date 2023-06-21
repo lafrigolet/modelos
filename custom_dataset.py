@@ -5,6 +5,7 @@ import torchvision.transforms.functional as TF
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import sys
+import numpy
 
 
 # Construcción de la base de datos.
@@ -24,7 +25,9 @@ class CustomDataset(torch.utils.data.Dataset):
         pass
 
     def append_images(self, images, label):
-        self.list_img   += images;
+        assert all(isinstance(img, torch.Tensor) for img in images)
+
+        self.list_img   += images
         self.list_label += [label for _ in range(len(images))]
     
     def __getitem__(self, index):

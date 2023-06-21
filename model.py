@@ -8,7 +8,7 @@ import sys
 import custom_dataset
 from helpers import normalize_images as NI
 import net
-
+import torchvision.transforms.functional as TF
 
 class Model():
     def __init__(self):
@@ -47,6 +47,19 @@ class Model():
 
     def cook_images(self, path, label, image_width, image_height): # template method
         raise NotImplementedError()
+
+    def load_dataset(self, path, batchsize, shuffle):
+        # Usar la base de datos construida
+        dataset = custom_dataset.CustomDataset()
+        dataset.append_images(self.cook_images(train_path + '/0', image_width, image_height), 0)
+        dataset.append_images(self.cook_images(train_path + '/1', image_width, image_height), 1)
+
+        loader = torch.utils.data.DataLoader(dataset=dataset,
+                                             batch_size=batchsize, 
+                                             shuffle=shuffle)
+
+        return loader
+        
     
     def train(self, output_pth_file, learning_rate, train_path, test_path, batch_size_train, batch_size_test, n_epochs, image_width, image_height):
         # optimizer         = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
@@ -73,7 +86,6 @@ class Model():
             self.train_counter.append(
                 (batch_idx*64) + ((epoch-1)*len(loader.dataset)))
         
-        # Usar la base de datos construida
         # Usar la base de datos construida
         train_dataset = custom_dataset.CustomDataset()
         train_dataset.append_images(self.cook_images(train_path + '/0', image_width, image_height), 0)
@@ -127,6 +139,10 @@ class Model():
 
     def eval_image(self, img, image_width, image_height):
         self.network.eval()
+
+        assert isinstance(img, Image.Image)
+
+        img = TF.to_tensor(img)
 
         img = img.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                        
