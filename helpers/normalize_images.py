@@ -1,7 +1,9 @@
 import torchvision.transforms.functional as TF
-
+from PIL import Image
 
 def normalize_image(img, target_width, target_height):
+#    print(img.__class__)
+    assert(isinstance(img, Image.Image))
     # Get the width and height of the image
     width, height = img.size
     tw, th = target_width, target_height
@@ -36,4 +38,4 @@ def normalize_image(img, target_width, target_height):
     # (height, width, channel) -> (channel, height, width)
     img_tensor = TF.to_tensor(img_padded)
     
-    return img_tensor
+    return img_padded

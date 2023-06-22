@@ -1,9 +1,10 @@
 *~
 machinehand_dataset/
 suicide_dataset/
-__pycache__/
 suicide_dataset.small/
 *.pth
+suicide_dataset.small.cooked/
+__pycache__/
 temp/
 #*
 .#*
@@ -11,3 +12,5 @@ machinehand_dataset.tar
 suicide_dataset.small.tar
 suicide_dataset.tar
 .ipynb_checkpoints/
+*.tar
+
