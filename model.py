@@ -142,8 +142,10 @@ class Model():
         plt.ylabel("TPR (sensibilidad, Recall)", fontsize=12, labelpad=10)
         plt.title("ROC de suicidios", fontsize=14)
         
+        nlabels = int(len(thresholds) / 5)
+        print(nlabels)
         for cont in range(0,len(thresholds)):
-            if not cont % 100:
+            if not cont % nlabels:
                 plt.text(fpr[cont], tpr[cont], "  {:.2f}".format(thresholds[cont]),color="blue")
                 plt.plot(fpr[cont], tpr[cont],"o",color="blue")
 
