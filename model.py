@@ -127,9 +127,9 @@ class Model():
 #        y = y.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         with torch.no_grad():
             for data, target in loader:
-                #data   = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+                data   = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 output = self.network(data)
-                #target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu")).numpy()
+                target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 output = output[:,1]
                 x += output
                 y += target
