@@ -169,7 +169,7 @@ class SuicideModel(model.Model):
         handwritten_images = self.preprocess(img, image_width, image_height)
         suicide_scores     = [suicide(img) for img in handwritten_images]
 
-        histogram = [0 for _ in range(10)]
+        histogram = [0 for _ in range(11)]
         for score in suicide_scores:
             index = int(round(score, 1) * 10)
             histogram[index] += 1
