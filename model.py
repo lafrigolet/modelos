@@ -15,10 +15,6 @@ import math
 class Model():
     def __init__(self):
         self.network       = net.Net()
-        self.train_losses  = []
-        self.train_counter = []
-        self.test_losses   = []
-        self.test_counter  = []
 
         # Move the model to the GPU if available
         if torch.cuda.is_available():
@@ -35,106 +31,77 @@ class Model():
     def load(self, pth):
         self.network.load_state_dict(torch.load(pth))
 
-    def train_counter(self):
-        return self.train_counter
-
-    def train_losses(self):
-        return self.train_losses
-        
-    def test_losses(self):
-        return self.test_losses
-
-    def test_counter(self):
-        return self.test_counter
-
     def cook_images(self, path, label, image_width, image_height): # template method
         raise NotImplementedError()
 
-    def load_dataset(self, path, batchsize, shuffle):
+    def build_loader(self, path, batchsize, shuffle, image_width, image_height):
         # Usar la base de datos construida
         dataset = custom_dataset.CustomDataset()
-        dataset.append_images(self.cook_images(train_path + '/0', image_width, image_height), 0)
-        dataset.append_images(self.cook_images(train_path + '/1', image_width, image_height), 1)
+        dataset.append_images(self.cook_images(path + '/0', image_width, image_height), 0)
+        dataset.append_images(self.cook_images(path + '/1', image_width, image_height), 1)
 
         loader = torch.utils.data.DataLoader(dataset=dataset,
                                              batch_size=batchsize, 
                                              shuffle=shuffle)
 
         return loader
-        
-    
-    def train(self, output_pth_file, learning_rate, train_path, test_path, batch_size_train, batch_size_test, n_epochs, image_width, image_height):
-        # optimizer         = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
-        self.optimizer     = optim.Adam(self.network.parameters(), lr=learning_rate)
-        # optimizer         = optim.Rprop(network.parameters(), lr=learning_rate)
 
-        def train_helper(loader, epoch):
-            datos_pasados = 0
-            self.network.train()
-            for batch_idx, (data, target) in enumerate(loader):
-                datos_pasados += len(data)
-                self.optimizer.zero_grad()
-                data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-                output = self.network(data)
-                target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-                loss = F.nll_loss(output, target)
-                loss.backward()
-                self.optimizer.step()
-            #if batch_idx % log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    epoch, datos_pasados, len(loader.dataset),
-                    100. * batch_idx / len(loader), loss.item()))
-            self.train_losses.append(loss.item())
-            self.train_counter.append(
-                (batch_idx*64) + ((epoch-1)*len(loader.dataset)))
-        
-        # Usar la base de datos construida
-        train_dataset = custom_dataset.CustomDataset()
-        train_dataset.append_images(self.cook_images(train_path + '/0', image_width, image_height), 0)
-        train_dataset.append_images(self.cook_images(train_path + '/1', image_width, image_height), 1)
 
-        test_dataset = custom_dataset.CustomDataset()
-        test_dataset.append_images(self.cook_images(test_path + '/0', image_width, image_height), 0)
-        test_dataset.append_images(self.cook_images(test_path + '/1', image_width, image_height), 1)
-
-        train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                                   batch_size=batch_size_train, 
-                                                   shuffle=True)
-        
-        test_loader = torch.utils.data.DataLoader(dataset=test_dataset, 
-                                                  batch_size=batch_size_test, 
-                                                  shuffle=False)
-
-        # Train the model
-        
-        for epoch in range(1, n_epochs + 1):
-            train_helper(train_loader, epoch)
-
-            if epoch % 10 == 0:
-                self.test(test_loader, 'Test set', n_epochs)
-                self.test(train_loader, 'Train set', n_epochs)
-
-        self.roc_curve(test_loader)
+    def save(self, output_pth_file):
         torch.save(self.network.state_dict(), output_pth_file + '.pth')
         torch.save(self.optimizer.state_dict(), output_pth_file + '_optimizer.pth')
 
 
+    def train_helper(self, loader, epoch):
+        datos_pasados = 0
+        self.network.train()
+        for batch_idx, (data, target) in enumerate(loader):
+            datos_pasados += len(data)
+            self.optimizer.zero_grad()
+            data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+            output = self.network(data)
+            target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+            loss = F.nll_loss(output, target)
+            loss.backward()
+            self.optimizer.step()
+
+        return datos_pasados, batch_idx, loss
+    
+        
+    def train(self, train_loader, test_loader, n_epochs, learning_rate):
+        # optimizer         = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
+        self.optimizer     = optim.Adam(self.network.parameters(), lr=learning_rate)
+        # optimizer         = optim.Rprop(network.parameters(), lr=learning_rate)
+
+        # Train the model
+        for epoch in range(1, n_epochs + 1):
+            datos_pasados, batch_idx, loss = self.train_helper(train_loader, epoch)
+            
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                epoch, datos_pasados, len(train_loader.dataset),
+                100. * batch_idx / len(train_loader), loss.item()))
+
+            if epoch % 10 == 0:
+                results, labels, test_loss, correct = self.test(test_loader)
+                print('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+                    test_loss, correct, len(test_loader.dataset),
+                    100. * correct / len(test_loader.dataset)))
+
+                results, labels, test_loss, correct = self.test(train_loader)
+                print('Train set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+                    test_loss, correct, len(train_loader.dataset),
+                    100. * correct / len(train_loader.dataset)))
+
+
+
     def roc_curve(self, loader):
         self.network.eval()
-        x = []
-        y = []
-#        x = x.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-#        y = y.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-        with torch.no_grad():
-            for data, target in loader:
-                data   = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-                output = self.network(data)
-                target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-                output = output[:,1]
-                x += output.cpu()
-                y += target.cpu()
+        
+        results, labels, test_loss, correct = self.test(loader)
 
-        x = [math.exp(i) for i in x]
+        x = [math.exp(result[1]) for result in results]
+        y = labels
+        
         fpr, tpr, thresholds = roc_curve(y,x)
         plt.plot(fpr,tpr,color="blue")
         plt.grid()
@@ -143,35 +110,39 @@ class Model():
         plt.title("ROC de suicidios", fontsize=14)
         
         nlabels = int(len(thresholds) / 5)
-        print(nlabels)
+ 
         for cont in range(0,len(thresholds)):
             if not cont % nlabels:
                 plt.text(fpr[cont], tpr[cont], "  {:.2f}".format(thresholds[cont]),color="blue")
                 plt.plot(fpr[cont], tpr[cont],"o",color="blue")
 
         plt.show()
+
+        return x, y
         
-    def test(self, loader, msg, n_epochs):
-        self.test_counter = [i*len(loader.dataset) for i in range(n_epochs + 1)]
+
+    def test(self, loader):
         self.network.eval()
         test_loss = 0
-        correct = 0
+        correct   = 0
+        results   = []
+        labels    = []
         with torch.no_grad():
             for data, target in loader:
                 #print('data', data.shape)
                 data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+                target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 output = self.network(data)
+                pred = output.data.max(1, keepdim=True)[1]
+                results += output.tolist()
+                labels  += target
                 #for t in torch.exp(output):
                 #    print('[{:.4f}, {:.4f}]'.format(t[0], t[1]))
-                target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 test_loss += F.nll_loss(output, target, size_average=False).item()
-                pred = output.data.max(1, keepdim=True)[1]
                 correct += pred.eq(target.data.view_as(pred)).sum()
         test_loss /= len(loader.dataset)
-        self.test_losses.append(test_loss)
-        print('{}: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-            msg, test_loss, correct, len(loader.dataset),
-            100. * correct / len(loader.dataset)))
+
+        return results, labels, test_loss, correct
 
     def eval_image(self, img, image_width, image_height):
         self.network.eval()

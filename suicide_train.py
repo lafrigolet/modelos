@@ -21,19 +21,24 @@ parser.add_argument('-t', '--cropped_height', type=int, help='cropped image heig
 # Parse the command-line arguments
 args = parser.parse_args()
 
-
-
+# PREPARING THE DATASET
 random_seed = 1
 torch.backends.cudnn.enabled = True
 torch.manual_seed(random_seed)
 
+# Build and train the model
 suicide_model = sm.SuicideModel(args.machinehand_model)
 
-#    def train(self, machinehand_model, learning_rate, train_path, test_path, batch_size_train, batch_size_test, n_epochs, image_width, image_height):
-suicide_model.train('suicide_model', args.learning_rate, args.path + '/train',
-                    args.path + '/test', args.batch_size_train, args.batch_size_test,
-                    args.epochs, args.cropped_width, args.cropped_height)
+train_path   = args.path + '/train'
+test_path    = args.path + '/test'
+train_loader = suicide_model.build_loader(train_path, args.batch_size_train, True, args.cropped_width, args.cropped_height)
+test_loader  = suicide_model.build_loader(test_path, args.batch_size_test, False, args.cropped_width, args.cropped_height)
 
+suicide_model.train(train_loader, test_loader, args.epochs, args.learning_rate)
+
+suicide_model.save('suicide_model')
+
+suicide_model.roc_curve(test_loader)
 
 # ./suicide_train.py -p ./suicide_dataset -m ./machinehand_model.pth -b 64 -s 1000 -e 70 -w 150 -t 30 -l 0.0001
 
