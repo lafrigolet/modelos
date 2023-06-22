@@ -3,9 +3,11 @@ machinehand_dataset/
 suicide_dataset/
 __pycache__/
 suicide_dataset.small/
+*.pth
 temp/
 #*
 .#*
 machinehand_dataset.tar
 suicide_dataset.small.tar
 suicide_dataset.tar
+.ipynb_checkpoints/
