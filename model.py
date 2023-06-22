@@ -131,8 +131,8 @@ class Model():
                 output = self.network(data)
                 target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 output = output[:,1]
-                x += output
-                y += target
+                x += output.cpu()
+                y += target.cpu()
 
         x = [math.exp(i) for i in x]
         fpr, tpr, thresholds = roc_curve(y,x)
