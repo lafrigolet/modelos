@@ -40,6 +40,7 @@ suicide_model.save('suicide_model')
 
 suicide_model.roc_curve(test_loader)
 
+
 # ./suicide_train.py -p ./suicide_dataset -m ./machinehand_model.pth -b 64 -s 1000 -e 70 -w 150 -t 30 -l 0.0001
 
     

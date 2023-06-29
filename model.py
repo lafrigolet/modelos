@@ -121,6 +121,7 @@ class Model():
         return x, y
         
 
+
     def test(self, loader):
         self.network.eval()
         test_loss = 0

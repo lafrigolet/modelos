@@ -8,6 +8,9 @@ import torch
 import torchvision.transforms as transforms
 from helpers import normalize_images as NI
 from matplotlib import pyplot as plt
+import custom_dataset
+import math
+import statistics as stats
 
 class SuicideModel(model.Model):
     def __init__(self, machinehand_model):  # For training the model
@@ -56,50 +59,6 @@ class SuicideModel(model.Model):
         """
         return handwritten_images
     
-    def cook_images_bak(self, path, image_width, image_height):
-        files = os.listdir(path)
-        handwritten_images = []
-        
-        for file in files:
-            print(path + '/' + file)
-            img = cv2.imread(path + '/' + file, 0)
-            handwritten_images += self.preprocess(img, image_width, image_height)
-            
-        print('len(handwritten_images): ', len(handwritten_images))
-        
-        return handwritten_images
-
-
-    def cook_images_bak2(self, path, image_width, image_height):
-        print(path)
-        path_list = path.split('/')
-        path_list[1] += '.cooked'
-        cooked_path = '/'.join(path_list)
-        print(cooked_path)
-
-
-        if not os.path.exists(cooked_path) or not os.listdir(cooked_path):
-            os.makedirs(cooked_path, exist_ok = True)
-            files = os.listdir(path)
-            i = 0
-            for file in files:
-                print(path + '/' + file)
-                img = cv2.imread(path + '/' + file, 0)
-                cv2_cropped_images = self.crop_image(img, image_width, image_height)
-                for cropped_image in cv2_cropped_images:
-                    cv2.imwrite(cooked_path + '/cropped_image_' + str(i) + '.jpg', cropped_image)
-                    i += 1
-
-        cooked_images      = os.listdir(cooked_path)
-        cv2_cropped_images = [cv2.imread(cooked_path + '/' + file, 0) for file in cooked_images]
-        pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
-        normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
-        handwritten_images = [img for img in normalized_images if self.hand_written(img, image_width, image_height)]
-        
-        print('len(handwritten_images): ', len(handwritten_images))
-
-        return handwritten_images
-
 
     def cook_images(self, path, image_width, image_height):
         print(path)
@@ -177,3 +136,37 @@ class SuicideModel(model.Model):
         print(histogram)
 
         return histogram
+
+    def mode(self, path, file, label, image_width, image_height, batchsize):
+        def cook_images(path, file, image_width, image_height):
+            img = cv2.imread(path + '/' + file, 0)
+            cv2_cropped_images = self.crop_image(img, image_width, image_height)
+            pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
+            normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
+            handwritten_images = [img for img in normalized_images if self.hand_written(img, image_width, image_height)]
+            to_pytorch_tensor  = transforms.ToTensor()
+            normalized_tensors = [to_pytorch_tensor(img) for img in normalized_images]
+            
+            return normalized_tensors
+
+        def image_to_loader(images, label, batchsize):
+            dataset = custom_dataset.CustomDataset()
+            dataset.append_images(images, label)
+    
+            loader = torch.utils.data.DataLoader(dataset=dataset,
+                                                 batch_size=batchsize, 
+                                                 shuffle=False)
+    
+            return loader
+
+
+        images = cook_images(path, file, image_width, image_height)
+        loader = image_to_loader(images, label, batchsize)
+        results, labels, test_loss, correct = self.test(loader)
+        
+        results = [math.exp(result[1]) for result in results]
+        results = [round(result, 1)    for result in results]
+        
+        mode    =  stats.mode(results) # statistical mode
+        
+        return mode, label
