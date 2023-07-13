@@ -52,8 +52,8 @@ class TransformerModel(nn.Module):
         return output
 
     # def train(model: nn.Module, criterion, lr, optimizer, scheduler) -> None:
-    def train(self, criterion, lr, optimizer, scheduler) -> None:
-        super(TransformerModel, self).train()  # turn on train mode
+    def train_model(self, criterion, lr, optimizer, scheduler) -> None:
+        self.train()  # turn on train mode
         total_loss = 0.
         log_interval = 200
         start_time = time.time()
@@ -208,8 +208,8 @@ with TemporaryDirectory() as tempdir:
 
     for epoch in range(1, epochs + 1):
         epoch_start_time = time.time()
-        model.train(criterion, lr, optimizer, scheduler)
-        val_loss = evaluate(model, val_data)
+        model.train_model(criterion, lr, optimizer, scheduler)
+        val_loss = model.evaluate(val_data)
         val_ppl = math.exp(val_loss)
         elapsed = time.time() - epoch_start_time
         print('-' * 89)
