@@ -1,5 +1,8 @@
-# https://pytorch.org/tutorials/beginner/transformer_tutorial.html#define-the-model
 
+#
+# Code from:
+# https://pytorch.org/tutorials/beginner/transformer_tutorial.html#define-the-model
+#
 
 import math
 import os
