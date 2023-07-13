@@ -217,11 +217,11 @@ with TemporaryDirectory() as tempdir:
             f'valid loss {val_loss:5.2f} | valid ppl {val_ppl:8.2f}')
         print('-' * 89)
 
-        #if val_loss < best_val_loss:
-            #best_val_loss = val_loss
-            #torch.save(model.state_dict(), best_model_params_path)
-        torch.save(model.state_dict(), best_model_params_path)
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            torch.save(model.state_dict(), best_model_params_path)
 
         scheduler.step()
         
+    torch.save(model.state_dict(), 'bible.pt')
     model.load_state_dict(torch.load(best_model_params_path)) # load best model states
