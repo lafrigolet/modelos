@@ -137,7 +137,8 @@ def data_process(raw_text_iter: dataset.IterableDataset) -> Tensor:
 
 # ``train_iter`` was "consumed" by the process of building the vocab,
 # so we have to create it again
-train_iter, val_iter, test_iter = WikiText2()
+#train_iter, val_iter, test_iter = WikiText2()
+train_iter, val_iter, test_iter = WikiText2(root='data/wikitext-2', split=('train', 'valid', 'test'))
 train_data = data_process(train_iter)
 val_data = data_process(val_iter)
 test_data = data_process(test_iter)
@@ -160,7 +161,7 @@ def batchify(data: Tensor, bsz: int) -> Tensor:
     data = data.view(bsz, seq_len).t().contiguous()
     return data.to(device)
 
-batch_size = 20
+batch_size = 40
 eval_batch_size = 10
 train_data = batchify(train_data, batch_size)  # shape ``[seq_len, batch_size]``
 val_data = batchify(val_data, eval_batch_size)
@@ -225,3 +226,11 @@ with TemporaryDirectory() as tempdir:
         
     torch.save(model.state_dict(), 'bible.pt')
     model.load_state_dict(torch.load(best_model_params_path)) # load best model states
+
+
+test_loss = model.evaluate(test_data)
+test_ppl = math.exp(test_loss)
+print('=' * 89)
+print(f'| End of training | test loss {test_loss:5.2f} | '
+      f'test ppl {test_ppl:8.2f}')
+print('=' * 89)    
