@@ -36,15 +36,9 @@ class SuicideModel(model.Model):
 
         return output[0][0] < output[0][1]  # output[0] is probability of machine written, output[1] hand written
     
-    def crop_image(self, img, image_width, image_height):
-        page                  = LS.handwritten_text_line_detection(img,dpi=300,break_connected_lines=False,
-                                                                   dilate_ink=True,min_word_dimmension=10)
-        numpy_cropped_images  = LS.crop_page(page, image_height, image_width)
-        
-        return numpy_cropped_images
 
     def preprocess(self, img, image_width, image_height):
-        cv2_cropped_images = self.crop_image(img, image_width, image_height)
+        cv2_cropped_images = crop_image(img, image_width, image_height)
         pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
         normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
         handwritten_images = [img for img in normalized_images if self.hand_written(img, image_width, image_height)]
@@ -59,40 +53,6 @@ class SuicideModel(model.Model):
         """
         return handwritten_images
     
-
-    def cook_images(self, path, image_width, image_height):
-        print(path)
-        path_list = path.split('/')
-        path_list[1] += '.cooked'
-        cooked_path = '/'.join(path_list)
-        print(cooked_path)
-
-        handwritten_images = []
-        if not os.path.exists(cooked_path) or not os.listdir(cooked_path):
-            os.makedirs(cooked_path, exist_ok = True)
-            files = os.listdir(path)
-            i = 0
-            for file in files:
-                print(path + '/' + file)
-                img = cv2.imread(path + '/' + file, 0)
-                cv2_cropped_images = self.crop_image(img, image_width, image_height)
-                pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
-                normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
-                handwritten_images = [img for img in normalized_images if self.hand_written(img, image_width, image_height)]
-                for handwritten_image in handwritten_images:
-                    handwritten_image.save(cooked_path + '/handwritten_image_' + str(i) + '.jpg')
-                    i += 1
-
-        to_pytorch_tensor      = transforms.ToTensor()
-        files                  = os.listdir(cooked_path)
-        cv2_handwritten_images = [cv2.imread(cooked_path + '/' + file, 0) for file in files]
-        pil_handwritten_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_handwritten_images]
-        normalized_images      = [NI.normalize_image(img, image_width, image_height) for img in pil_handwritten_images]
-        normalized_tensors     = [to_pytorch_tensor(img) for img in normalized_images]
-            
-        print('len(normalized_tensors): ', len(normalized_tensors))
-
-        return normalized_tensors
 
     
     def suicide_score(self, file, image_height, image_width):
@@ -137,10 +97,19 @@ class SuicideModel(model.Model):
 
         return histogram
 
-    def mode(self, path, file, label, image_width, image_height, batchsize):
+
+def crop_image(img, image_width, image_height):
+        page                  = LS.handwritten_text_line_detection(img,dpi=300,break_connected_lines=False,
+                                                                   dilate_ink=True,min_word_dimmension=10)
+        numpy_cropped_images  = LS.crop_page(page, image_height, image_width)
+        
+        return numpy_cropped_images
+
+    
+def mode(path, file, label, image_width, image_height, batchsize):
         def cook_images(path, file, image_width, image_height):
             img = cv2.imread(path + '/' + file, 0)
-            cv2_cropped_images = self.crop_image(img, image_width, image_height)
+            cv2_cropped_images = crop_image(img, image_width, image_height)
             pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
             normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
             handwritten_images = [img for img in normalized_images if self.hand_written(img, image_width, image_height)]
@@ -170,3 +139,51 @@ class SuicideModel(model.Model):
         mode    =  stats.mode(results) # statistical mode
         
         return mode, label
+
+
+def build_loader(path, batchsize, shuffle, image_width, image_height):
+    # Usar la base de datos construida
+    dataset = custom_dataset.CustomDataset()
+    dataset.append_images(cook_images(path + '/0', image_width, image_height), 0)
+    dataset.append_images(cook_images(path + '/1', image_width, image_height), 1)
+        
+    loader = torch.utils.data.DataLoader(dataset=dataset,
+                                         batch_size=batchsize, 
+                                         shuffle=shuffle)
+
+    return loader
+
+def cook_images(path, image_width, image_height):
+        print(path)
+        path_list = path.split('/')
+        path_list[1] += '.cooked'
+        cooked_path = '/'.join(path_list)
+        print(cooked_path)
+
+        handwritten_images = []
+        if not os.path.exists(cooked_path) or not os.listdir(cooked_path):
+            os.makedirs(cooked_path, exist_ok = True)
+            files = os.listdir(path)
+            i = 0
+            for file in files:
+                print(path + '/' + file)
+                img = cv2.imread(path + '/' + file, 0)
+                cv2_cropped_images = crop_image(img, image_width, image_height)
+                pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
+                normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
+                handwritten_images = [img for img in normalized_images if self.hand_written(img, image_width, image_height)]
+                for handwritten_image in handwritten_images:
+                    handwritten_image.save(cooked_path + '/handwritten_image_' + str(i) + '.jpg')
+                    i += 1
+
+        to_pytorch_tensor      = transforms.ToTensor()
+        files                  = os.listdir(cooked_path)
+        cv2_handwritten_images = [cv2.imread(cooked_path + '/' + file, 0) for file in files]
+        pil_handwritten_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_handwritten_images]
+        normalized_images      = [NI.normalize_image(img, image_width, image_height) for img in pil_handwritten_images]
+        normalized_tensors     = [to_pytorch_tensor(img) for img in normalized_images]
+            
+        print('len(normalized_tensors): ', len(normalized_tensors))
+
+        return normalized_tensors
+    

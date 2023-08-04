@@ -7,14 +7,14 @@ import torch.nn.functional as F
 import sys
 import custom_dataset
 from helpers import normalize_images as NI
-import net
+from models.cnn import CNN
 import torchvision.transforms.functional as TF
 from sklearn.metrics import roc_curve
 import math
 
 class Model():
     def __init__(self):
-        self.network       = net.Net()
+        self.network       = CNN()
 
         # Move the model to the GPU if available
         if torch.cuda.is_available():
@@ -29,7 +29,7 @@ class Model():
             print("Model is using CPU.")
 
     def load(self, pth):
-        self.network.load_state_dict(torch.load(pth))
+        self.network.load(pth)
 
     def cook_images(self, path, label, image_width, image_height): # template method
         raise NotImplementedError()
@@ -46,52 +46,11 @@ class Model():
 
         return loader
 
-
     def save(self, output_pth_file):
-        torch.save(self.network.state_dict(), output_pth_file + '.pth')
-        torch.save(self.optimizer.state_dict(), output_pth_file + '_optimizer.pth')
-
-
-    def train_helper(self, loader, epoch):
-        datos_pasados = 0
-        self.network.train()
-        for batch_idx, (data, target) in enumerate(loader):
-            datos_pasados += len(data)
-            self.optimizer.zero_grad()
-            data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-            output = self.network(data)
-            target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-            loss = F.nll_loss(output, target)
-            loss.backward()
-            self.optimizer.step()
-
-        return datos_pasados, batch_idx, loss
-    
+        self.network.save(output_pth_file)
         
     def train(self, train_loader, test_loader, n_epochs, learning_rate):
-        # optimizer         = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
-        self.optimizer     = optim.Adam(self.network.parameters(), lr=learning_rate)
-        # optimizer         = optim.Rprop(network.parameters(), lr=learning_rate)
-
-        # Train the model
-        for epoch in range(1, n_epochs + 1):
-            datos_pasados, batch_idx, loss = self.train_helper(train_loader, epoch)
-            
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, datos_pasados, len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
-
-            if epoch % 10 == 0:
-                results, labels, test_loss, correct = self.test(test_loader)
-                print('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-                    test_loss, correct, len(test_loader.dataset),
-                    100. * correct / len(test_loader.dataset)))
-
-                results, labels, test_loss, correct = self.test(train_loader)
-                print('Train set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-                    test_loss, correct, len(train_loader.dataset),
-                    100. * correct / len(train_loader.dataset)))
-
+        self.network.train_model(train_loader, test_loader, n_epochs, learning_rate)
 
 
     def roc_curve(self, loader):
@@ -123,27 +82,7 @@ class Model():
 
 
     def test(self, loader):
-        self.network.eval()
-        test_loss = 0
-        correct   = 0
-        results   = []
-        labels    = []
-        with torch.no_grad():
-            for data, target in loader:
-                #print('data', data.shape)
-                data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-                target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-                output = self.network(data)
-                pred = output.data.max(1, keepdim=True)[1]
-                results += output.tolist()
-                labels  += target
-                #for t in torch.exp(output):
-                #    print('[{:.4f}, {:.4f}]'.format(t[0], t[1]))
-                test_loss += F.nll_loss(output, target, size_average=False).item()
-                correct += pred.eq(target.data.view_as(pred)).sum()
-        test_loss /= len(loader.dataset)
-
-        return results, labels, test_loss, correct
+        return self.network.test(loader)
 
     def eval_image(self, img, image_width, image_height):
         self.network.eval()
