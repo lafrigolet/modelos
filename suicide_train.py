@@ -3,6 +3,7 @@
 
 import torch
 import suicide_model as SM
+import models.utils as MU
 import argparse
 
 # Create the parser
@@ -38,7 +39,9 @@ suicide_model.train(train_loader, test_loader, args.epochs, args.learning_rate)
 
 suicide_model.save('suicide_model')
 
-suicide_model.roc_curve(test_loader)
+results, labels, test_loss, correct = suicide_model.test(test_loader)
+
+MU.roc_curve(results, labels)
 
 
 # ./suicide_train.py -p ./suicide_dataset -m ./machinehand_model.pth -b 64 -s 1000 -e 70 -w 150 -t 30 -l 0.0001

@@ -9,8 +9,6 @@ import custom_dataset
 from helpers import normalize_images as NI
 from models.cnn import CNN
 import torchvision.transforms.functional as TF
-from sklearn.metrics import roc_curve
-import math
 
 class Model():
     def __init__(self):
@@ -51,35 +49,6 @@ class Model():
         
     def train(self, train_loader, test_loader, n_epochs, learning_rate):
         self.network.train_model(train_loader, test_loader, n_epochs, learning_rate)
-
-
-    def roc_curve(self, loader):
-        self.network.eval()
-        
-        results, labels, test_loss, correct = self.test(loader)
-
-        x = [math.exp(result[1]) for result in results]
-        y = labels
-        
-        fpr, tpr, thresholds = roc_curve(y,x)
-        plt.plot(fpr,tpr,color="blue")
-        plt.grid()
-        plt.xlabel("FPR (especifidad)", fontsize=12, labelpad=10)
-        plt.ylabel("TPR (sensibilidad, Recall)", fontsize=12, labelpad=10)
-        plt.title("ROC de suicidios", fontsize=14)
-        
-        nlabels = int(len(thresholds) / 5)
- 
-        for cont in range(0,len(thresholds)):
-            if not cont % nlabels:
-                plt.text(fpr[cont], tpr[cont], "  {:.2f}".format(thresholds[cont]),color="blue")
-                plt.plot(fpr[cont], tpr[cont],"o",color="blue")
-
-        plt.show()
-
-        return x, y
-        
-
 
     def test(self, loader):
         return self.network.test(loader)

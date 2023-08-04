@@ -64,7 +64,6 @@ class CNN(nn.Module):
         torch.save(self.state_dict(), output_pth_file + '.pth')
         torch.save(self.optimizer.state_dict(), output_pth_file + '_optimizer.pth')
 
-
     def train_helper(self, loader, epoch):
         datos_pasados = 0
         self.train()

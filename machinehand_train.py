@@ -2,13 +2,8 @@
 # coding: utf-8
 
 import torch
-import torchvision
-import torchvision.transforms as transforms
-import torch.optim as optim
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-import os
-import machinehand_model
+import machinehand_model as MM
+import models.utils as MU
 import argparse
 
 # Create the parser
@@ -34,7 +29,7 @@ torch.manual_seed(random_seed)
 
 
 # Build and train the model
-machinehand_model = machinehand_model.MachineHandModel()
+machinehand_model = MM.MachineHandModel()
 
 train_path   = args.path + '/train'
 test_path    = args.path + '/test'
@@ -45,8 +40,9 @@ machinehand_model.train(train_loader, test_loader, args.epochs, args.learning_ra
 
 machinehand_model.save(args.machinehand_model)
 
-machinehand_model.roc_curve(test_loader)
+results, labels, test_loss, correct = machinehand_model.test(test_loader)
 
+MU.roc_curve(results, labels)
 
 # ./machinehand_train.py -m machinehand_model -p ./machinehand_dataset -b 64 -s 1000 -e 70 -w 150 -t 30 -l 0.0001
 
