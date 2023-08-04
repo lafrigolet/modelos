@@ -4,6 +4,8 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.transforms.functional as TF
+from PIL import Image
 
 class CNN(nn.Module):
         
@@ -128,3 +130,15 @@ class CNN(nn.Module):
         return results, labels, test_loss, correct
 
     
+    def eval_image(self, img, image_width, image_height):
+        self.eval()
+
+        assert isinstance(img, Image.Image)
+
+        img = TF.to_tensor(img)
+
+        img = img.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+
+        output = self(img)
+                       
+        return torch.exp(output)

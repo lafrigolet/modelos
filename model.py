@@ -54,15 +54,7 @@ class Model():
         return self.network.test(loader)
 
     def eval_image(self, img, image_width, image_height):
-        self.network.eval()
-
-        assert isinstance(img, Image.Image)
-
-        img = TF.to_tensor(img)
-
-        img = img.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-                       
-        return torch.exp(self.network(img))
+        return self.network.eval_image(img, image_width, image_height)
                          
     def eval(self, path, image_width, image_height):
         dataset = custom_dataset.CustomDataset()
