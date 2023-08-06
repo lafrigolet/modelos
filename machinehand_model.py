@@ -3,9 +3,23 @@ from PIL import Image
 import model
 from helpers import normalize_images as NI
 import cv2
+import torch
 import torchvision.transforms as transforms
+import custom_dataset
 
 class MachineHandModel(model.Model):
+    def build_loader(self, path, batchsize, shuffle, image_width, image_height):
+        # Usar la base de datos construida
+        dataset = custom_dataset.CustomDataset()
+        dataset.append_images(self.cook_images(path + '/0', image_width, image_height), 0)
+        dataset.append_images(self.cook_images(path + '/1', image_width, image_height), 1)
+
+        loader = torch.utils.data.DataLoader(dataset=dataset,
+                                             batch_size=batchsize, 
+                                             shuffle=shuffle)
+
+        return loader
+
 
     def cook_images(self, path, image_width, image_height):
         files = os.listdir(path)

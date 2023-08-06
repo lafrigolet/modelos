@@ -32,8 +32,8 @@ suicide_model = SM.SuicideModel(args.machinehand_model)
 
 train_path   = args.path + '/train'
 test_path    = args.path + '/test'
-train_loader = SM.build_loader(train_path, args.batch_size_train, True, args.cropped_width, args.cropped_height)
-test_loader  = SM.build_loader(test_path, args.batch_size_test, False, args.cropped_width, args.cropped_height)
+train_loader = suicide_model.build_loader(train_path, args.batch_size_train, True, args.cropped_width, args.cropped_height)
+test_loader  = suicide_model.build_loader(test_path, args.batch_size_test, False, args.cropped_width, args.cropped_height)
 
 suicide_model.train(train_loader, test_loader, args.epochs, args.learning_rate)
 
