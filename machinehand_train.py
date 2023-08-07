@@ -36,7 +36,7 @@ test_path    = args.path + '/test'
 train_loader = machinehand_model.build_loader(train_path, args.batch_size_train, True, args.cropped_width, args.cropped_height)
 test_loader  = machinehand_model.build_loader(test_path, args.batch_size_test, False, args.cropped_width, args.cropped_height)
     
-machinehand_model.train(train_loader, test_loader, args.epochs, args.learning_rate)
+machinehand_model.train_model(train_loader, test_loader, args.epochs, args.learning_rate)
 
 machinehand_model.save(args.machinehand_model)
 

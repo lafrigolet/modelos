@@ -1,13 +1,13 @@
 import os
 from PIL import Image
-import model
 from helpers import normalize_images as NI
 import cv2
 import torch
 import torchvision.transforms as transforms
 import custom_dataset
+from models.cnn import CNN
 
-class MachineHandModel(model.Model):
+class MachineHandModel(CNN):
     def build_loader(self, path, batchsize, shuffle, image_width, image_height):
         # Usar la base de datos construida
         dataset = custom_dataset.CustomDataset()

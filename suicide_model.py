@@ -1,6 +1,5 @@
 import os
 from PIL import Image
-import model
 import machinehand_model as MHM
 from helpers import line_selector as LS
 import cv2
@@ -11,8 +10,9 @@ from matplotlib import pyplot as plt
 import custom_dataset
 import math
 import statistics as stats
+from models.cnn import CNN
 
-class SuicideModel(model.Model):
+class SuicideModel(CNN):
     def __init__(self, machinehand_model):  # For training the model
         super().__init__()
         # Load the model
@@ -20,15 +20,7 @@ class SuicideModel(model.Model):
         self.machinehand_model.load(machinehand_model)
 
         self.suicide_model = None
-    """
-    def __Init__(self, machinehand_model, suicide_model): # To eval width the Model
-        # Load the model
-        self.machinehand_model = loaders.Model(model.Net(), None)
-        self.machinehand_model.load(machinehand_model)
-        
-        self.suicide_model = loaders.Model(model.Net(), None)
-        self.suicide_model.load(suicide_model)
-    """
+
 
     def hand_written(self, img, image_width, image_height):
         output = self.machinehand_model.eval_image(img, image_width, image_height)

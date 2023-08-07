@@ -35,7 +35,20 @@ class CNN(nn.Module):
         # First fully connected layer with 6120 input features and 50 output features
         self.fc1 = nn.Linear(self.__neurons_in_first_fully_connected, 50)
         # Second fully connected layer with 50 input features and 1 output features
-        self.fc2 = nn.Linear(50, 2) 
+        self.fc2 = nn.Linear(50, 2)
+
+        # Move the model to the GPU if available
+        if torch.cuda.is_available():
+            self.to(torch.device("cuda"))
+
+        # Check the device of the model's parameters
+        param_device = next(self.parameters()).device
+
+        if param_device.type == "cuda":
+            print("Model is using GPU.")
+        else:
+            print("Model is using CPU.")
+
 
     def forward(self, input_data):
         # Apply first convolutional layer, ReLU activation function, and max pooling with a 2x2 kernel size
@@ -68,7 +81,7 @@ class CNN(nn.Module):
 
     def train_helper(self, loader, epoch):
         datos_pasados = 0
-        self.train()
+        super().train()
         for batch_idx, (data, target) in enumerate(loader):
             datos_pasados += len(data)
             self.optimizer.zero_grad()
