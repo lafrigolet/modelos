@@ -19,6 +19,18 @@ class FNNModel(nn.Module):
         self.output_layer = nn.Linear(hidden_size2, num_classes)
         self.softmax = nn.Softmax(dim=1)
 
+        # Move the model to the GPU if available
+        if torch.cuda.is_available():
+            self.to(torch.device("cuda"))
+
+        # Check the device of the model's parameters
+        param_device = next(self.parameters()).device
+
+        if param_device.type == "cuda":
+            print("Model is using GPU.")
+        else:
+            print("Model is using CPU.")
+
         
     def forward(self, x):
         out = self.layer1(x)
