@@ -35,22 +35,11 @@ class SuicideModel(CNN):
         normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
         handwritten_images = [img for img in normalized_images if self.hand_written(img, image_width, image_height)]
 
-        """
-        # Convert the tensor to a PIL image
-
-        transform = transforms.ToPILImage()
-        for i,tensor in enumerate(handwritten_images):
-            pil_image = transform(tensor)
-            pil_image.save('temp/img_{}.jpg'.format(i))
-        """
         return handwritten_images
     
 
     
     def suicide_score(self, file, image_height, image_width):
-        self.suicide_model = self.network
-#        if self.suicide_model == None:
-#            raise Exception('No suicide model specified to eval suicide_score')
                 
         def suicide(img):
             output = self.eval_image(img, image_width, image_height)
@@ -67,10 +56,7 @@ class SuicideModel(CNN):
 
 
     def histogram(self, file, image_height, image_width):
-        self.suicide_model = self.network
-#        if self.suicide_model == None:
-#            raise Exception('No suicide model specified to eval suicide_score')
-                
+
         def suicide(img):
             output = self.eval_image(img, image_width, image_height)
             return output.data[0][1].item()  # output[0][1] is probability of suicide
@@ -104,10 +90,7 @@ class SuicideModel(CNN):
             for file in files:
                 print(path + '/' + file)
                 img = cv2.imread(path + '/' + file, 0)
-                cv2_cropped_images = crop_image(img, image_width, image_height)
-                pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
-                normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
-                handwritten_images = [img for img in normalized_images if self.hand_written(img, image_width, image_height)]
+                handwritten_images = self.preprocess(img, image_width, image_height)
                 for handwritten_image in handwritten_images:
                     handwritten_image.save(cooked_path + '/handwritten_image_' + str(i) + '.jpg')
                     i += 1
