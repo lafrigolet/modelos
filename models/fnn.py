@@ -43,19 +43,19 @@ class FNNModel(nn.Module):
 
 
 
-    def train_model(self, train_loader, n_epochs, learning_rate):
+    def train_model(self, train_loader, test_loader, n_epochs, learning_rate):
         criterion = nn.CrossEntropyLoss()
         # optimizer = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
         optimizer = optim.Adam(self.parameters(), lr=learning_rate)
         # optimizer = optim.Rprop(network.parameters(), lr=learning_rate)
-
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     
-        for epoch in range(n_epochs):
+        for epoch in range(1, n_epochs + 1):
             self.train()
             running_loss = 0.0
         
             for inputs, labels in train_loader:
+                _, expected = torch.max(labels, 1) 
+                # print(inputs.to(torch.int), expected)
                 optimizer.zero_grad()
                 inputs = inputs.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
                 labels = labels.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
@@ -66,7 +66,39 @@ class FNNModel(nn.Module):
             
                 running_loss += loss.item()
         
-            print(f"Epoch [{epoch + 1}/{n_epochs}], Loss: {running_loss / len(train_loader)}")
+            print(f"Epoch [{epoch}/{n_epochs}], Loss: {running_loss / len(train_loader)}")
+
+            if epoch % 10 == 0:
+                """
+                results, labels, test_loss, correct = self.test(test_loader)
+                print('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+                    test_loss, correct, len(test_loader.dataset),
+                    100. * correct / len(test_loader.dataset)))
+                """
+                correct = self.test(train_loader)
+                accuracy = correct / len(train_loader.dataset) * 100
+                print(f"Train set Accuracy: {accuracy:.2f}%")
+
+                correct = self.test(test_loader)
+                accuracy = correct / len(test_loader.dataset) * 100
+                print(f"Test set Accuracy: {accuracy:.2f}%")
+
+
+    def test(self, test_loader):
+        self.eval()
+        correct = 0
+        test_loss = 0
+    
+        with torch.no_grad():
+            for inputs, labels in test_loader:
+                outputs = self(inputs)
+                _, predicted = torch.max(outputs, 1)
+                _, targets = torch.max(outputs, 1)
+                correct += (predicted == targets).sum().item()
+    
+        return correct
+
+                
 
 """
     TO DELETE
@@ -90,6 +122,7 @@ class FNNModel(nn.Module):
 class CustomDataset(Dataset):
     def __init__(self, data, context_size):
         self.data = data
+        self.data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         self.len  = len(data) - context_size
         self.context_size = context_size
     
@@ -97,9 +130,11 @@ class CustomDataset(Dataset):
         return self.len
     
     def __getitem__(self, index):
-        data = self.data[index:index + self.context_size]
+        #data = self.data[index:index + self.context_size]
+        data = self.data.narrow(0, index, self.context_size)
         labels = torch.FloatTensor(vocab_len).fill_(0)
         next_token = self.data[index + self.context_size]
+        #print(data.to(torch.int), next_token)
         labels[int(next_token)] = 1.
 
         return data, labels
@@ -210,10 +245,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #data = torch.randn(100, 10)  # Example: 100 samples, each with 10 features
 #labels = torch.randint(0, 5, (100,))  # Example: 100 labels, 5 classes
 
-context_size = 1000 # number of tokens to use as context
+context_size = 100 # number of tokens to use as context
 vocab_size = len(vocab) # len of vocab
 
-train_data = train_data[0:100000] # Reduce the train_data set
+#train_data = train_data[0:1000] # Reduce the train_data set
 vocab_len = len(vocab)
 train_data_len = len(train_data)
 
@@ -233,12 +268,13 @@ print(len(labels))
 #print(labels[55])
 """
 # Instantiate your custom dataset
-custom_dataset = CustomDataset(train_data, context_size)
+train_custom_dataset = CustomDataset(train_data, context_size)
+test_custom_dataset = CustomDataset(train_data, context_size)
 
 # Create a DataLoader
 batch_size = 64  # Number of samples in each batch
-train_loader = DataLoader(dataset=custom_dataset, batch_size=batch_size, shuffle=True)
-    
+train_loader = DataLoader(dataset=train_custom_dataset, batch_size=batch_size, shuffle=False)
+test_loader  = DataLoader(dataset=test_custom_dataset, batch_size=batch_size, shuffle=False)
 
 # Build and train model ######################################################################
 
@@ -248,10 +284,12 @@ hidden_size1 = 200  # Number of neurons in the first hidden layer
 hidden_size2 = 100  # Number of neurons in the second hidden layer
 num_classes = vocab_size   # Number of output classes
 learning_rate = 0.0001
-n_epochs = 100
+n_epochs = 11
 
+
+print(f"Hiperparameters: context_size {context_size}, learning_rate {learning_rate}, batch_size {batch_size}, n_epochs {n_epochs}");
 # Instantiate the model
 model = FNNModel(input_size, hidden_size1, hidden_size2, num_classes, learning_rate)
 print(model)
 
-model.train_model(train_loader, n_epochs, learning_rate)
+model.train_model(train_loader, test_loader, n_epochs, learning_rate)
