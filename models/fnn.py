@@ -42,7 +42,11 @@ class FNNModel(nn.Module):
         return out
 
 
+    def save(self, output_pth_file):
+        torch.save(self.state_dict(), output_pth_file + '.pth')
+        #torch.save(self.optimizer.state_dict(), output_pth_file + '_optimizer.pth')
 
+        
     def train_model(self, train_loader, test_loader, n_epochs, learning_rate):
         criterion = nn.CrossEntropyLoss()
         # optimizer = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
@@ -280,11 +284,11 @@ test_loader  = DataLoader(dataset=test_custom_dataset, batch_size=batch_size, sh
 
 # Define model parameters
 input_size =  context_size  # Specify the input size or number of features
-hidden_size1 = 200  # Number of neurons in the first hidden layer
-hidden_size2 = 100  # Number of neurons in the second hidden layer
+hidden_size1 = 10  # Number of neurons in the first hidden layer
+hidden_size2 = 5  # Number of neurons in the second hidden layer
 num_classes = vocab_size   # Number of output classes
 learning_rate = 0.0001
-n_epochs = 11
+n_epochs = 20
 
 
 print(f"Hiperparameters: context_size {context_size}, learning_rate {learning_rate}, batch_size {batch_size}, n_epochs {n_epochs}");
@@ -293,3 +297,5 @@ model = FNNModel(input_size, hidden_size1, hidden_size2, num_classes, learning_r
 print(model)
 
 model.train_model(train_loader, test_loader, n_epochs, learning_rate)
+model.save('fnn')
+
