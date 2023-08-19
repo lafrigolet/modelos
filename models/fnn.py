@@ -124,11 +124,12 @@ class FNNModel(nn.Module):
 
 # Define your custom dataset class
 class CustomDataset(Dataset):
-    def __init__(self, data, context_size):
+    def __init__(self, data, context_size, vocab_len):
         self.data = data
         self.data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         self.len  = len(data) - context_size
         self.context_size = context_size
+        self.vocab_len = vocab_len
     
     def __len__(self):
         return self.len
@@ -136,7 +137,7 @@ class CustomDataset(Dataset):
     def __getitem__(self, index):
         #data = self.data[index:index + self.context_size]
         data = self.data.narrow(0, index, self.context_size)
-        labels = torch.FloatTensor(vocab_len).fill_(0)
+        labels = torch.FloatTensor(self.vocab_len).fill_(0)
         next_token = self.data[index + self.context_size]
         #print(data.to(torch.int), next_token)
         labels[int(next_token)] = 1.
@@ -170,40 +171,40 @@ def train(model, train_loader, test_loader, n_epochs):
                 100. * correct / len(train_loader.dataset)))
 """
 
-
-
+def train():
+    # Load Text Processing Embeddings ############################################################
     
-train_iter = WikiText2(root='data/wikitext-2', split='train')
+    train_iter = WikiText2(root='data/wikitext-2', split='train')
 
-"""
-for item in train_iter:
+    """
+    for item in train_iter:
     print('--------------------------------------------------------------------------')
     print(item)
     print('--------------------------------------------------------------------------')
-"""
+    """
 
-tokenizer = get_tokenizer('basic_english')
-tokenized_train_iter = map(tokenizer, train_iter)
+    tokenizer = get_tokenizer('basic_english')
+    tokenized_train_iter = map(tokenizer, train_iter)
 
-"""
-for token in tokenized_train_iter:
+    """
+    for token in tokenized_train_iter:
     print(token)
-"""
+    """
 
-vocab = build_vocab_from_iterator(map(tokenizer, train_iter), specials=['<unk>'])
-vocab.set_default_index(vocab['<unk>'])
+    vocab = build_vocab_from_iterator(map(tokenizer, train_iter), specials=['<unk>'])
+    vocab.set_default_index(vocab['<unk>'])
 
-"""
-# Inspect callable methods for a python object
-for name in dir(vocab):
-    if callable(getattr(vocab, name)):
-        print(name)
-"""
+    """
+    # Inspect callable methods for a python object
+    for name in dir(vocab):
+       if callable(getattr(vocab, name)):
+       print(name)
+    """
 
-# print(vocab.lookup_token(780))
+    # print(vocab.lookup_token(780))
       
 
-"""
+    """
 # Iterate through the vocabulary items
 for token, index in vocab.get_stoi().items():
     print(f"Token: {token}, Index: {index}")
@@ -215,48 +216,48 @@ print(f"Vocabulary Size: {vocab_size}")
 # Access the index of a specific token
 index_of_unk = vocab['<unk>']
 print(f"Index of <unk>: {index_of_unk}")
-"""
+    """
 
-def data_process(raw_text_iter: dataset.IterableDataset) -> Tensor:
-    """Converts raw text into a flat Tensor."""
-    data = [torch.tensor(vocab(tokenizer(item)), dtype=torch.float32) for item in raw_text_iter]
-    return torch.cat(tuple(filter(lambda t: t.numel() > 0, data)))
+    def data_process(raw_text_iter: dataset.IterableDataset) -> Tensor:
+        """Converts raw text into a flat Tensor."""
+        data = [torch.tensor(vocab(tokenizer(item)), dtype=torch.float32) for item in raw_text_iter]
+        return torch.cat(tuple(filter(lambda t: t.numel() > 0, data)))
 
-# ``train_iter`` was "consumed" by the process of building the vocab,
-# so we have to create it again
-#train_iter, val_iter, test_iter = WikiText2()
-train_iter, val_iter, test_iter = WikiText2(root='data/wikitext-2', split=('train', 'valid', 'test'))
-train_data = data_process(train_iter)
-val_data = data_process(val_iter)
-test_data = data_process(test_iter)
+    # ``train_iter`` was "consumed" by the process of building the vocab,
+    # so we have to create it again
+    #train_iter, val_iter, test_iter = WikiText2()
+    train_iter, val_iter, test_iter = WikiText2(root='data/wikitext-2', split=('train', 'valid', 'test'))
+    train_data = data_process(train_iter)
+    val_data = data_process(val_iter)
+    test_data = data_process(test_iter)
 
-"""
-# Assuming train_data is a torch.Tensor
-print(len(train_data))
-print("Train Data (First 100 Elements):")
-print(train_data[:100])
-"""
+    """
+    # Assuming train_data is a torch.Tensor
+    print(len(train_data))
+    print("Train Data (First 100 Elements):")
+    print(train_data[:100])
+    """
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 
-# Prepare Train Data Set ############################################################
 
-# Example data and labels
-#data = torch.randn(100, 10)  # Example: 100 samples, each with 10 features
-#labels = torch.randint(0, 5, (100,))  # Example: 100 labels, 5 classes
 
-context_size = 100 # number of tokens to use as context
-vocab_size = len(vocab) # len of vocab
+    # Prepare Train Data Set ############################################################
 
-#train_data = train_data[0:1000] # Reduce the train_data set
-vocab_len = len(vocab)
-train_data_len = len(train_data)
+    # Example data and labels
+    #data = torch.randn(100, 10)  # Example: 100 samples, each with 10 features
+    #labels = torch.randint(0, 5, (100,))  # Example: 100 labels, 5 classes
 
-"""
+    context_size = 100 # number of tokens to use as context
+    vocab_size = len(vocab) # len of vocab
+
+    #train_data = train_data[0:1000] # Reduce the train_data set
+    vocab_len = len(vocab)
+    train_data_len = len(train_data)
+
+    """
 TO DELETE
 data = torch.FloatTensor(train_data_len - context_size, context_size).fill_(0)
 labels = torch.FloatTensor(train_data_len - context_size, vocab_len).fill_(0)
@@ -270,32 +271,35 @@ print(len(data))
 print(len(labels))
 #print(len(labels[55]))
 #print(labels[55])
-"""
-# Instantiate your custom dataset
-train_custom_dataset = CustomDataset(train_data, context_size)
-test_custom_dataset = CustomDataset(train_data, context_size)
+    """
+    # Instantiate your custom dataset
+    train_custom_dataset = CustomDataset(train_data, context_size, vocab_len)
+    test_custom_dataset = CustomDataset(train_data, context_size, vocab_len)
 
-# Create a DataLoader
-batch_size = 64  # Number of samples in each batch
-train_loader = DataLoader(dataset=train_custom_dataset, batch_size=batch_size, shuffle=False)
-test_loader  = DataLoader(dataset=test_custom_dataset, batch_size=batch_size, shuffle=False)
+    # Create a DataLoader
+    batch_size = 64  # Number of samples in each batch
+    train_loader = DataLoader(dataset=train_custom_dataset, batch_size=batch_size, shuffle=False)
+    test_loader  = DataLoader(dataset=test_custom_dataset, batch_size=batch_size, shuffle=False)
 
-# Build and train model ######################################################################
+    # Build and train model ######################################################################
 
-# Define model parameters
-input_size =  context_size  # Specify the input size or number of features
-hidden_size1 = 10  # Number of neurons in the first hidden layer
-hidden_size2 = 5  # Number of neurons in the second hidden layer
-num_classes = vocab_size   # Number of output classes
-learning_rate = 0.0001
-n_epochs = 20
+    # Define model parameters
+    input_size =  context_size  # Specify the input size or number of features
+    hidden_size1 = 10  # Number of neurons in the first hidden layer
+    hidden_size2 = 5  # Number of neurons in the second hidden layer
+    num_classes = vocab_size   # Number of output classes
+    learning_rate = 0.0001
+    n_epochs = 20
 
 
-print(f"Hiperparameters: context_size {context_size}, learning_rate {learning_rate}, batch_size {batch_size}, n_epochs {n_epochs}");
-# Instantiate the model
-model = FNNModel(input_size, hidden_size1, hidden_size2, num_classes, learning_rate)
-print(model)
+    print(f"Hiperparameters: context_size {context_size}, learning_rate {learning_rate}, batch_size {batch_size}, n_epochs {n_epochs}");
+    # Instantiate the model
+    model = FNNModel(input_size, hidden_size1, hidden_size2, num_classes, learning_rate)
+    print(model)
 
-model.train_model(train_loader, test_loader, n_epochs, learning_rate)
-model.save('fnn')
+    model.train_model(train_loader, test_loader, n_epochs, learning_rate)
+    model.save('fnn')
+
+
+train()
 
