@@ -99,7 +99,6 @@ class FNNModel(nn.Module):
     
         with torch.no_grad():
             for inputs, labels in test_loader:
-                print(type(inputs), inputs.shape)
                 outputs = self(inputs)
                 _, predicted = torch.max(outputs, 1)
                 _, targets = torch.max(labels, 1)
@@ -180,7 +179,6 @@ def load_embeddings():
     # Load Text Processing Embeddings ############################################################
     
     train_iter = WikiText2(root='data/wikitext-2', split='train')
-    print(type(train_iter))
 
     """
     for item in train_iter:
@@ -259,7 +257,7 @@ def train():
     #data = torch.randn(100, 10)  # Example: 100 samples, each with 10 features
     #labels = torch.randint(0, 5, (100,))  # Example: 100 labels, 5 classes
 
-    context_size = 100 # number of tokens to use as context
+    context_size = 5 # number of tokens to use as context
     vocab_size = len(vocab) # len of vocab
 
     #train_data = train_data[0:1000] # Reduce the train_data set
@@ -293,11 +291,11 @@ print(len(labels))
 
     # Define model parameters
     input_size =  context_size  # Specify the input size or number of features
-    hidden_size1 = 10  # Number of neurons in the first hidden layer
-    hidden_size2 = 5  # Number of neurons in the second hidden layer
+    hidden_size1 = 100  # Number of neurons in the first hidden layer
+    hidden_size2 = 50  # Number of neurons in the second hidden layer
     num_classes = vocab_size   # Number of output classes
     learning_rate = 0.0001
-    n_epochs = 20
+    n_epochs = 10
 
 
     print(f"Hiperparameters: context_size {context_size}, learning_rate {learning_rate}, batch_size {batch_size}, n_epochs {n_epochs}");
@@ -371,9 +369,9 @@ def chat():
 
 
 
-chat()
+#chat()
 
-#train()
+train()
 
 
 
