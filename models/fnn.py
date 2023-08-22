@@ -7,21 +7,42 @@ import torch.optim as optim
 import torch
 import copy
 import utils as U
+import torch
+import torch.nn as nn
 
-class FNNModel(nn.Module):
-    def __init__(self, input_size, hidden_size1, hidden_size2, num_classes):
-        super(FNNModel, self).__init__()
-        self.layer1 = nn.Linear(input_size, hidden_size1)
-        self.relu1 = nn.ReLU()
-        self.layer2 = nn.Linear(hidden_size1, hidden_size2)
-        self.relu2 = nn.ReLU()
-        self.output_layer = nn.Linear(hidden_size2, num_classes)
-        self.softmax = nn.Softmax(dim=1)
+class FNN(nn.Module):
+    # layers_sizes = [input_size, hidden_layer1, hidden_layer2, ..., hidden_layern, num_classes]
+    def __init__(self, layer_sizes):
+        super(FNN, self).__init__()
+
+        print(f"layers: {layer_sizes}")
+        
+        layers = []
+
+        input_size = layer_sizes[0]
+        hidden_sizes = layer_sizes[1:-1]
+        output_size = layer_sizes[-1]
+
+        # Input layer
+
+        layers.append(nn.Linear(input_size, hidden_sizes[0]))
+        layers.append(nn.ReLU())
+
+        # Hidden layers
+        for i in range(len(hidden_sizes) - 1):
+            layers.append(nn.Linear(hidden_sizes[i], hidden_sizes[i + 1]))
+            layers.append(nn.ReLU())
+
+        # Output layer
+        layers.append(nn.Linear(hidden_sizes[-1], output_size))
+
+        self.layers = nn.Sequential(*layers)
 
         # Move the model to the GPU if available
         if torch.cuda.is_available():
             self.to(torch.device("cuda"))
 
+        
         # Check the device of the model's parameters
         param_device = next(self.parameters()).device
 
@@ -30,17 +51,12 @@ class FNNModel(nn.Module):
         else:
             print("Model is using CPU.")
 
-        
+
+
     def forward(self, x):
-        out = self.layer1(x)
-        out = self.relu1(out)
-        out = self.layer2(out)
-        out = self.relu2(out)
-        out = self.output_layer(out)
-        out = self.softmax(out)
-        return out
+        return self.layers(x)
 
-
+            
     def load(self, pth):
         self.load_state_dict(torch.load(pth))
 
@@ -208,10 +224,10 @@ def train():
     #data = torch.randn(100, 10)  # Example: 100 samples, each with 10 features
     #labels = torch.randint(0, 5, (100,))  # Example: 100 labels, 5 classes
 
-    context_size = 5 # number of tokens to use as context
+    context_size = 100 # number of tokens to use as context
     vocab_size = len(vocab) # len of vocab
 
-    #train_data = train_data[0:1000] # Reduce the train_data set
+    train_data = train_data[0:100000] # Reduce the train_data set
     train_data_len = len(train_data)
 
     """
@@ -234,7 +250,7 @@ print(len(labels))
     test_custom_dataset = CustomDataset(test_data, context_size, vocab_size)
 
     # Create a DataLoader
-    batch_size = 64  # Number of samples in each batch
+    batch_size = 256  # Number of samples in each batch
     train_loader = DataLoader(dataset=train_custom_dataset, batch_size=batch_size, shuffle=False)
     test_loader  = DataLoader(dataset=test_custom_dataset, batch_size=batch_size, shuffle=False)
 
@@ -242,8 +258,6 @@ print(len(labels))
 
     # Define model parameters
     input_size =  context_size  # Specify the input size or number of features
-    hidden_size1 = 100  # Number of neurons in the first hidden layer
-    hidden_size2 = 50  # Number of neurons in the second hidden layer
     num_classes = vocab_size   # Number of output classes
     learning_rate = 0.0001
     n_epochs = 10
@@ -251,7 +265,7 @@ print(len(labels))
 
     print(f"Hiperparameters: context_size {context_size}, learning_rate {learning_rate}, batch_size {batch_size}, n_epochs {n_epochs}");
     # Instantiate the model
-    model = FNNModel(input_size, hidden_size1, hidden_size2, num_classes)
+    model = FNN([input_size, 10000, 1000, 1000, 1000, num_classes])
     print(model)
 
     model.train_model(train_loader, test_loader, n_epochs, learning_rate)
@@ -296,7 +310,8 @@ def chat():
     hidden_size2 = 5  # Number of neurons in the second hidden layer
     num_classes = vocab_size   # Number of output classes
 
-    model = FNNModel(input_size, hidden_size1, hidden_size2, num_classes)
+    #model = FNN([input_size, 100, 100, num_classes])
+    model = FNN([10, 5, 2, 4])
     print(model)
     model.load('fnn.pth')
 
