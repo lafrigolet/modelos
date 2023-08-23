@@ -42,7 +42,6 @@ class FNN(nn.Module):
         if torch.cuda.is_available():
             self.to(torch.device("cuda"))
 
-        
         # Check the device of the model's parameters
         param_device = next(self.parameters()).device
 
@@ -57,69 +56,67 @@ class FNN(nn.Module):
         return self.layers(x)
 
             
-    def load(self, pth):
-        self.load_state_dict(torch.load(pth))
+def load(model, pth):
+    model.load_state_dict(torch.load(pth))
 
 
-    def save(self, output_pth_file):
-        torch.save(self.state_dict(), output_pth_file + '.pth')
-        #torch.save(self.optimizer.state_dict(), output_pth_file + '_optimizer.pth')
+def save(model, output_pth_file):
+    torch.save(model.state_dict(), output_pth_file + '.pth')
+    #torch.save(model.optimizer.state_dict(), output_pth_file + '_optimizer.pth')
 
         
-    def train_model(self, train_loader, test_loader, n_epochs, learning_rate):
-        criterion = nn.CrossEntropyLoss()
-        # optimizer = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
-        optimizer = optim.Adam(self.parameters(), lr=learning_rate)
-        # optimizer = optim.Rprop(network.parameters(), lr=learning_rate)
+def train_model(model, train_loader, test_loader, n_epochs, learning_rate):
+    criterion = nn.CrossEntropyLoss()
+    # optimizer = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    # optimizer = optim.Rprop(network.parameters(), lr=learning_rate)
     
-        for epoch in range(1, n_epochs + 1):
-            self.train()
-            running_loss = 0.0
+    for epoch in range(1, n_epochs + 1):
+        model.train()
+        running_loss = 0.0
         
-            for inputs, labels in train_loader:
-                _, expected = torch.max(labels, 1) 
-                # print(inputs.to(torch.int), expected)
-                optimizer.zero_grad()
-                inputs = inputs.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-                labels = labels.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-                outputs = self(inputs)
-                loss = criterion(outputs, labels)
-                loss.backward()
-                optimizer.step()
+        for inputs, labels in train_loader:
+            _, expected = torch.max(labels, 1) 
+            # print(inputs.to(torch.int), expected)
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
             
-                running_loss += loss.item()
+            running_loss += loss.item()
         
-            print(f"Epoch [{epoch}/{n_epochs}], Loss: {running_loss / len(train_loader)}")
+        print(f"Epoch [{epoch}/{n_epochs}], Loss: {running_loss / len(train_loader)}")
 
-            if epoch % 10 == 0:
-                """
-                results, labels, test_loss, correct = self.test(test_loader)
-                print('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-                    test_loss, correct, len(test_loader.dataset),
-                    100. * correct / len(test_loader.dataset)))
-                """
-                correct = self.test(train_loader)
-                accuracy = correct / len(train_loader.dataset) * 100
-                print(f"Train set Accuracy: {accuracy:.2f}%")
+        if epoch % 10 == 0:
+            """
+            results, labels, test_loss, correct = model.test(test_loader)
+            print('Test set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+            test_loss, correct, len(test_loader.dataset),
+            100. * correct / len(test_loader.dataset)))
+            """
+            correct = test(model, train_loader)
+            accuracy = correct / len(train_loader.dataset) * 100
+            print(f"Train set Accuracy: {accuracy:.2f}%")
 
-                correct = self.test(test_loader)
-                accuracy = correct / len(test_loader.dataset) * 100
-                print(f"Test set Accuracy: {accuracy:.2f}%")
+            correct = test(model, test_loader)
+            accuracy = correct / len(test_loader.dataset) * 100
+            print(f"Test set Accuracy: {accuracy:.2f}%")
 
 
-    def test(self, test_loader):
-        self.eval()
-        correct = 0
-        test_loss = 0
+def test(model, test_loader):
+    model.eval()
+    correct = 0
+    test_loss = 0
     
-        with torch.no_grad():
-            for inputs, labels in test_loader:
-                outputs = self(inputs)
-                _, predicted = torch.max(outputs, 1)
-                _, targets = torch.max(labels, 1)
-                correct += (predicted == targets).sum().item()
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, 1)
+            _, targets = torch.max(labels, 1)
+            correct += (predicted == targets).sum().item()
     
-        return correct
+    return correct
 
                 
 
@@ -160,6 +157,9 @@ class CustomDataset(Dataset):
         next_token = self.data[index + self.context_size]
         #print(data.to(torch.int), next_token)
         labels[int(next_token)] = 1.
+
+        data = data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        labels = labels.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
         return data, labels
 
@@ -227,7 +227,7 @@ def train():
     context_size = 100 # number of tokens to use as context
     vocab_size = len(vocab) # len of vocab
 
-    train_data = train_data[0:100000] # Reduce the train_data set
+    #train_data = train_data[0:100000] # Reduce the train_data set
     train_data_len = len(train_data)
 
     """
@@ -250,7 +250,7 @@ print(len(labels))
     test_custom_dataset = CustomDataset(test_data, context_size, vocab_size)
 
     # Create a DataLoader
-    batch_size = 256  # Number of samples in each batch
+    batch_size = 64  # Number of samples in each batch
     train_loader = DataLoader(dataset=train_custom_dataset, batch_size=batch_size, shuffle=False)
     test_loader  = DataLoader(dataset=test_custom_dataset, batch_size=batch_size, shuffle=False)
 
@@ -260,16 +260,23 @@ print(len(labels))
     input_size =  context_size  # Specify the input size or number of features
     num_classes = vocab_size   # Number of output classes
     learning_rate = 0.0001
-    n_epochs = 10
+    n_epochs = 50
 
 
     print(f"Hiperparameters: context_size {context_size}, learning_rate {learning_rate}, batch_size {batch_size}, n_epochs {n_epochs}");
     # Instantiate the model
-    model = FNN([input_size, 10000, 1000, 1000, 1000, num_classes])
+    
+    model = FNN([input_size, 1000, 1000, 1000, 1000, 1000, num_classes])
+
+    print("torch.cuda.device_count ", torch.cuda.device_count())
+    """
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model)
+    """
     print(model)
 
-    model.train_model(train_loader, test_loader, n_epochs, learning_rate)
-    model.save('fnn')
+    train_model(model, train_loader, test_loader, n_epochs, learning_rate)
+    save(model, 'fnn')
 
 class TokensDataSet(Dataset):
     def __init__(self, data):
@@ -313,7 +320,7 @@ def chat():
     #model = FNN([input_size, 100, 100, num_classes])
     model = FNN([10, 5, 2, 4])
     print(model)
-    model.load('fnn.pth')
+    load(model, 'fnn.pth')
 
     model.eval()
     outputs = model(tokens_data.view(1,-1))
