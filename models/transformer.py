@@ -102,7 +102,7 @@ def load(model, ptf) -> None:
 
 
 #def evaluate(model: nn.Module, eval_data: Tensor) -> float:
-def evaluate(model, eval_data: Tensor, ntokens) -> float:
+def evaluate(model, eval_data: Tensor, criterion, ntokens) -> float:
     model.eval()  # turn on evaluation mode
     total_loss = 0.
     with torch.no_grad():

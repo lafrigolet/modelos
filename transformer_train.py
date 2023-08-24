@@ -76,7 +76,7 @@ with TemporaryDirectory() as tempdir:
     for epoch in range(1, epochs + 1):
         epoch_start_time = time.time()
         M.train(model, train_data, criterion, lr, optimizer, scheduler, epoch, ntokens)
-        val_loss = M.evaluate(model, val_data, ntokens)
+        val_loss = M.evaluate(model, val_data, criterion, ntokens)
         val_ppl = math.exp(val_loss)
         elapsed = time.time() - epoch_start_time
         print('-' * 89)
@@ -93,7 +93,7 @@ with TemporaryDirectory() as tempdir:
     model.load_state_dict(torch.load(best_model_params_path)) # load best model states
 
 
-test_loss = M.evaluate(model, test_data, ntokens)
+test_loss = M.evaluate(model, test_data, criterion, ntokens)
 test_ppl = math.exp(test_loss)
 print('=' * 89)
 print(f'| End of training | test loss {test_loss:5.2f} | '
