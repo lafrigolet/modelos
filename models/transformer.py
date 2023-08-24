@@ -52,7 +52,7 @@ class TransformerModel(nn.Module):
         return output
 
     # def train(model: nn.Module, criterion, lr, optimizer, scheduler) -> None:
-    def train_model(self, criterion, lr, optimizer, scheduler) -> None:
+    def train_model(self, train_data, criterion, lr, optimizer, scheduler) -> None:
         self.train()  # turn on train mode
         total_loss = 0.
         log_interval = 200
@@ -83,6 +83,10 @@ class TransformerModel(nn.Module):
                 start_time = time.time()
 
 
+    def load(self, ptf) -> None:
+        self.load_state_dict(torch.load(ptf)) # load best model states
+
+
     #def evaluate(model: nn.Module, eval_data: Tensor) -> float:
     def evaluate(self, eval_data: Tensor) -> float:
         self.eval()  # turn on evaluation mode
@@ -92,6 +96,7 @@ class TransformerModel(nn.Module):
                 data, targets = get_batch(eval_data, i)
                 seq_len = data.size(0)
                 output = self(data)
+                print(output)
                 output_flat = output.view(-1, ntokens)
                 total_loss += seq_len * criterion(output_flat, targets).item()
         return total_loss / (len(eval_data) - 1)
@@ -209,7 +214,7 @@ with TemporaryDirectory() as tempdir:
 
     for epoch in range(1, epochs + 1):
         epoch_start_time = time.time()
-        model.train_model(criterion, lr, optimizer, scheduler)
+        model.train_model(train_data, criterion, lr, optimizer, scheduler)
         val_loss = model.evaluate(val_data)
         val_ppl = math.exp(val_loss)
         elapsed = time.time() - epoch_start_time
@@ -224,7 +229,6 @@ with TemporaryDirectory() as tempdir:
 
         scheduler.step()
         
-    torch.save(model.state_dict(), 'bible.pt')
     model.load_state_dict(torch.load(best_model_params_path)) # load best model states
 
 
