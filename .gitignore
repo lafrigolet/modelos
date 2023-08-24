@@ -13,4 +13,9 @@ suicide_dataset.small.tar
 suicide_dataset.tar
 .ipynb_checkpoints/
 *.tar
+models/data/bible/train.long.txt
+models/data/bible/train.small.txt
+data/
+models/data/wikitext-2/datasets/
+models/examples/
 
