@@ -75,7 +75,7 @@ with TemporaryDirectory() as tempdir:
 
     for epoch in range(1, epochs + 1):
         epoch_start_time = time.time()
-        M.train(model, train_data, criterion, lr, optimizer, scheduler, ntokens)
+        M.train(model, train_data, criterion, lr, optimizer, scheduler, epoch, ntokens)
         val_loss = model.evaluate(val_data)
         val_ppl = math.exp(val_loss)
         elapsed = time.time() - epoch_start_time
