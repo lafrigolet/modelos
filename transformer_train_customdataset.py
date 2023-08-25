@@ -21,7 +21,7 @@ class CustomDataset(Dataset):
         self.data = self.data.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
     def __len__(self):
-        return len(self.data)
+        return len(self.data) - 1
     
     def __getitem__(self, i):
 #        bptt = 35
