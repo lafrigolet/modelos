@@ -63,6 +63,7 @@ def get_batch(source: Tensor, i: int) -> Tuple[Tensor, Tensor]:
     seq_len = min(bptt, len(source) - 1 - i)
     data = source[i:i+seq_len]
     target = source[i+1:i+1+seq_len].reshape(-1)
+    print("get_batch ", data.shape, target.shape)
     return data, target
 
 # def train(model: nn.Module, criterion, lr, optimizer, scheduler) -> None:
@@ -77,6 +78,7 @@ def train(model, train_data, criterion, lr, optimizer, scheduler, epoch, ntokens
         data, targets = get_batch(train_data, i)
         output = model(data)
         output_flat = output.view(-1, ntokens)
+        print(f"data {data.shape}, targets {targets.shape}, output {output.shape}, output_flat {output_flat.shape}")
         loss = criterion(output_flat, targets)
             
         optimizer.zero_grad()
