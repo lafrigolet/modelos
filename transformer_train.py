@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 import os
 import time
 import math
+from typing import Tuple
 
 train_iter = WikiText2(root='data/wikitext-2', split='train')
 tokenizer = get_tokenizer('basic_english')

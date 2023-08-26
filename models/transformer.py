@@ -8,8 +8,6 @@ import math
 import torch
 from torch import nn, Tensor
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
-import time
-from typing import Tuple
 
 
 class TransformerModel(nn.Module):
