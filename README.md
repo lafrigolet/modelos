@@ -1,100 +1,108 @@
-# modelos
-## Requirements
-OS: Debian 12
-Python: 3.9
-Python Requirements:
-certifi==2023.7.22
-charset-normalizer==3.3.1
-cmake==3.27.7
-filelock==3.13.1
-idna==3.4
-Jinja2==3.1.2
-lit==17.0.4
-MarkupSafe==2.1.3
-mpmath==1.3.0
-networkx==3.2.1
-numpy==1.26.1
-Pillow==10.1.0
-requests==2.31.0
-sympy==1.12
-torch==2.0.1+cu117
-torchaudio==2.0.2+rocm5.4.2
-torchvision==0.15.2+rocm5.4.2
-triton==2.0.0
-typing_extensions==4.8.0
-urllib3==2.0.7
-## Python 3.9 build on Debian 12
-To install Python 3.9 on Debian, you can follow these steps. Debian typically comes with Python 3 pre-installed, but you can install Python 3.9 alongside it.
 
-1. **Update Package Lists**:
 
-   Open a terminal and run the following command to update the package lists and upgrade any existing packages to their latest versions:
+**Step 1: Update Package List**
 
-   ```bash
-   sudo apt update
-   sudo apt upgrade
-   ```
+Before installing any software, it's a good practice to update your package list to ensure you have the latest package information. Open a terminal and run the following command:
 
-2. **Install Required Dependencies**:
+```bash
+sudo apt update
+```
 
-   Before building Python from source, you'll need to install some development tools and libraries. Run the following command to install the necessary dependencies:
+**Step 2: Install Python**
 
-   ```bash
-   sudo apt install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev
-   ```
+Python is often pre-installed on Debian-based systems, but you can ensure you have the latest version by running:
 
-3. **Download and Compile Python 3.9**:
+```bash
+sudo apt install python3
+```
 
-   Next, download the Python 3.9 source code, extract it, and compile it. You can use the following commands:
+This command installs Python 3, which is recommended for most new projects, as Python 2 has reached its end of life.
 
-   ```bash
-   # Create a directory for the Python source code
-   mkdir ~/python39
+**Step 3: Install Pip (Python Package Manager)**
 
-   # Navigate to the new directory
-   cd ~/python39
+Pip is a package manager for Python. You can install it with the following command:
 
-   # Download Python 3.9 source code
-   wget https://www.python.org/ftp/python/3.9.7/Python-3.9.7.tgz
+```bash
+sudo apt install python3-pip
+```
 
-   # Extract the source code
-   tar -xvf Python-3.9.7.tgz
+This installs Pip for Python 3.
 
-   # Navigate into the Python source directory
-   cd Python-3.9.7
-   ```
+**Step 4: Verify Python and Pip Installation**
 
-   Now you're in the Python 3.9 source directory.
+You can check the versions of Python and Pip that you've just installed:
 
-4. **Configure and Compile Python**:
+```bash
+python3 --version
+pip3 --version
+```
 
-   Run the following commands to configure and compile Python 3.9:
+This should display the version information for Python 3 and Pip 3.
 
-   ```bash
-   ./configure --enable-optimizations
-   make -j8  # This will use 8 CPU cores for faster compilation; adjust it as needed
-   ```
+**Step 5: Create a Virtual Environment:**
+Create a virtual environment with the following command. Replace myenv with the name you prefer for your virtual environment:
 
-   The `--enable-optimizations` flag enables various optimizations during compilation.
+bash
+Copy code
+python3 -m venv myenv
 
-5. **Install Python**:
+**Step 6: Activate the Virtual Environment:**
+Activate your virtual environment with the following command:
 
-   After the compilation is complete, install Python 3.9:
+bash
+Copy code
+source myenv/bin/activate
+Your command prompt should change, indicating that you are now in the virtual environment.
 
-   ```bash
-   sudo make altinstall
-   ```
+**Step 7: Install PyTorch**
 
-   Using `altinstall` is preferred over `make install` because it installs Python 3.9 alongside the system Python without replacing it.
+You can install PyTorch, a popular deep learning framework, using Pip. There are various installation options available for PyTorch, depending on your system and requirements. Here's a basic example of how to install the CPU-only version of PyTorch:
 
-6. **Verify Python Installation**:
+```bash
+pip3 install torch torchvision torchaudio
+```
 
-   You can verify that Python 3.9 is installed correctly by running:
+This command installs PyTorch, its computer vision library torchvision, and audio library torchaudio.
 
-   ```bash
-   python3.9 --version
-   ```
+**Step 8: Verify PyTorch Installation**
 
-   You should see the Python 3.9 version information.
+You can verify the PyTorch installation by opening a Python interpreter:
 
-Python 3.9 is now installed on your Debian system. You can use it by running `python3.9` or `python3.9 <script.py>` for your Python scripts.
+```bash
+python3
+```
+
+Then, in the Python interpreter, you can import PyTorch:
+
+```python
+import torch
+print(torch.__version__)
+```
+
+This should display the PyTorch version you've installed.
+
+**Step 9: Verify PyTorch is running on GPU**
+
+Certainly! You can use a simple PyTorch program to check if it's running on a GPU. Here's a Python script that checks for the availability of a GPU and prints the device name:
+
+```python
+import torch
+
+# Check if a GPU is available
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    print("GPU is available. Using", torch.cuda.get_device_name(0))
+else:
+    device = torch.device("cpu")
+    print("GPU is not available. Using CPU.")
+
+# Create a tensor on the selected device
+x = torch.rand(3, 3).to(device)
+
+# Print the device of the tensor
+print("Tensor is on", x.device)
+```
+
+Save this script to a `.py` file and run it. If a GPU is available, it will print the GPU's name, and if not, it will indicate that it's using the CPU.
+
+Make sure you have PyTorch installed and that it's configured to work with your GPU. If you have a compatible NVIDIA GPU and have installed the GPU version of PyTorch, this script should detect and use the GPU for tensor operations.
