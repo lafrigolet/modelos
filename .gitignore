@@ -1,9 +1,17 @@
 *~
 machinehand_dataset/
+machinehand_dataset.cropped/
+machinehand_dataset.tensor/
 suicide_dataset/
+suicide_dataset.cropped/
+suicide_dataset.handwritten/
+suicide_dataset.tensor/
 suicide_dataset.small/
-*.pth
+suicide_dataset.small.cropped/
+suicide_dataset.small.handwritten/
+suicide_dataset.small.tensor/
 suicide_dataset.small.cooked/
+*.pth
 __pycache__/
 temp/
 #*
@@ -18,4 +26,6 @@ models/data/bible/train.small.txt
 data/
 models/data/wikitext-2/datasets/
 models/examples/
+
+
 
