@@ -41,10 +41,15 @@ def train(model, train_loader, test_loader, criterion, optimizer, epochs):
     
     for epoch in range(1, epochs + 1):
         model.train()
-        running_loss = 0.0
+
+        total_loss = 0.
+        log_interval = 200
+        start_time = time.time()
+        num_batches = len(train_loader) 
+        batch = 0
         
         for inputs, labels in train_loader:
-            _, expected = torch.max(labels, 1) 
+#            _, expected = torch.max(labels, 1) 
 #            print(f"inputs {inputs.shape}, labels {labels.shape}")
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -54,11 +59,24 @@ def train(model, train_loader, test_loader, criterion, optimizer, epochs):
 #            print(f"outputs_flat {outputs_flat.shape}, labels {labels.shape}")
             loss = criterion(outputs_flat, labels)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
             optimizer.step()
             
-            running_loss += loss.item()
-        
-        print(f"Epoch [{epoch}/{epochs}], Loss: {running_loss / len(train_loader)}")
+            total_loss += loss.item()
+            batch += len(inputs[0])
+            if batch % log_interval == 0 and batch > 0:
+                lr = scheduler.get_last_lr()[0]
+                ms_per_batch = (time.time() - start_time) * 1000 / log_interval
+                cur_loss = total_loss / log_interval
+                ppl = math.exp(cur_loss)
+                print(f'| epoch {epoch:3d} | {batch:5d}/{num_batches:5d} batches | '
+                      f'lr {lr:02.2f} | ms/batch {ms_per_batch:5.2f} | '
+                      f'loss {cur_loss:5.2f} | ppl {ppl:8.2f}')
+                total_loss = 0
+                start_time = time.time()
+
+
+#            print(f"Epoch [{epoch}/{epochs}], Loss: {running_loss / len(train_loader)}")
 
         if epoch % 10 == 0:
             """

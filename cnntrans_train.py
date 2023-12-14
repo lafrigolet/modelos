@@ -85,6 +85,6 @@ results, labels, test_loss, correct = CT.test(model, test_loader)
 
 MU.roc_curve(results.cpu(), labels.cpu())
 
-# ./cnntrans_train.py -p ./suicide_dataset -b 64 -s 1000 -e 70 -w 150 -t 30 -l 0.0001
+# ./cnntrans_train.py -p ./suicide_dataset.cooked.pt -b 64 -s 1000 -e 70 -w 150 -t 30 -l 0.0001
 
     

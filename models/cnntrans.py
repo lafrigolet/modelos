@@ -5,6 +5,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms.functional as TF
+from torch.utils.tensorboard import SummaryWriter
 
 from PIL import Image
 
@@ -93,13 +94,16 @@ class CNNTrans(nn.Module):
         x = F.dropout(x, training=self.training)
         # Apply second fully connected layer
         x = self.fc2(x)
-        print('x.shape ', x.shape)
+        # print('x.shape ', x.shape)
 
         # Apply log softmax activation function to output of the network
         return F.log_softmax(x)
 
 
 def train(model, train_loader, test_loader, n_epochs, learning_rate):
+    # tensorboard inititialization writer
+    writer = SummaryWriter('logs')
+    
     # optimizer         = optim.SGD(network.parameters(), lr=learning_rate, momentum=momentum)
     model.optimizer     = optim.Adam(model.parameters(), lr=learning_rate)
     # optimizer         = optim.Rprop(network.parameters(), lr=learning_rate)
@@ -117,6 +121,7 @@ def train(model, train_loader, test_loader, n_epochs, learning_rate):
             output = model(data)
             target = target.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
             loss = F.nll_loss(output, target)
+            writer.add_scalar('loss', loss.item(), epoch) # tensorboard log
             loss.backward()
             model.optimizer.step()
             
@@ -135,6 +140,8 @@ def train(model, train_loader, test_loader, n_epochs, learning_rate):
             print('Train set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
                 test_loss, correct, len(train_loader.dataset),
                 100. * correct / len(train_loader.dataset)))
+
+    writer.close()
 
                 
 def test(model, loader):

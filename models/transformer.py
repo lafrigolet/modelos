@@ -40,10 +40,11 @@ class TransformerModel(nn.Module):
         Returns:
             output Tensor of shape ``[seq_len, batch_size, ntoken]``
         """
-        src = self.embedding(src) * math.sqrt(self.d_model)
-        src = self.pos_encoder(src)
+        src    = self.embedding(src) * math.sqrt(self.d_model)
+        src    = self.pos_encoder(src)
         output = self.transformer_encoder(src, src_mask)
         output = self.linear(output)
+        
         return output
 
 
