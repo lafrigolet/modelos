@@ -94,4 +94,4 @@ T.roc_curve("ROC", results.cpu(), labels.cpu())
 
 # ./cnnlstm_train.py -p ./suicide_dataset.small.tensor -o ./suicide_model.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
 
-    
+# ./cnnlstm_train.py -p ./osborne_dataset.tensor -o ./osborne_cnnlstm_model.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1    

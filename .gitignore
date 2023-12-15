@@ -11,6 +11,9 @@ suicide_dataset.small.cropped/
 suicide_dataset.small.handwritten/
 suicide_dataset.small.tensor/
 suicide_dataset.small.cooked/
+osborne_dataset/
+osborne_dataset.cropped/
+osborne_dataset.tensor/
 *.pth
 __pycache__/
 temp/
