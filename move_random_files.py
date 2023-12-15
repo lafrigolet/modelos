@@ -42,5 +42,7 @@ if __name__ == "__main__":
     move_random_files(args.source, args.destination, args.percentage)
 
 
+# ./move_random_files.py -s suicide_dataset.tensor/train/0 -d suicide_dataset.tensor/test/0 -p 0.2
+# ./move_random_files.py -s suicide_dataset.tensor/train/1 -d suicide_dataset.tensor/test/1 -p 0.2
 # ./move_random_files.py -s osborne_dataset.tensor/juan_nicolas -d osborne_dataset.tensor/juan_nicolas/test -p 0.2
 # ./move_random_files.py -s osborne_dataset.tensor/tomas_osborne -d osborne_dataset.tensor/tomas_osborne/test -p 0.2

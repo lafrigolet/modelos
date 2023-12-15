@@ -84,15 +84,18 @@ for i in range(0, args.nbatches):
 torch.save(model.state_dict(), args.pth_file)
 #torch.save(model.optimizer.state_dict(), args.pth_file + '_optimizer.pth')
 
-results, labels, test_loss, correct = T.test(model, test_loader)
+# results, labels, test_loss, correct = T.test(model, test_loader)
 
-T.roc_curve("ROC", results.cpu(), labels.cpu())
+# T.roc_curve("ROC", results.cpu(), labels.cpu())
 
-# ./cnn_train.py -p ./machinehand_dataset.tensor -o ./machinehand_model.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
+# ./cnn_train.py -p ./machinehand_dataset.tensor -o ./machinehand_model.cnn.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
 
-# ./cnn_train.py -p ./suicide_dataset.tensor -o ./suicide_model.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 10
+# ./cnn_train.py -p ./suicide_dataset.tensor -o ./suicide_model.cnn.5.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 5
+# ./cnn_train.py -p ./suicide_dataset.tensor -o ./suicide_model.cnn.10.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 10
+# ./cnn_train.py -p ./suicide_dataset.tensor -o ./suicide_model.cnn.50.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 50
+# ./cnn_train.py -p ./suicide_dataset.tensor -o ./suicide_model.cnn.100.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 100
 
-# ./cnn_train.py -p ./suicide_dataset.small.tensor -o ./suicide_model.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
+# ./cnn_train.py -p ./suicide_dataset.small.tensor -o ./suicide_model.small.cnn.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
 
-# ./cnn_train.py -p ./osborne_dataset.tensor -o ./osborne_cnn_model.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
+# ./cnn_train.py -p ./osborne_dataset.tensor -o ./osborne_model.cnn.pth -b 64 -s 1000 -e 150 -w 150 -t 40 -l 0.0001 -n 1
     
