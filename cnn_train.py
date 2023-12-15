@@ -84,9 +84,9 @@ for i in range(0, args.nbatches):
 torch.save(model.state_dict(), args.pth_file)
 #torch.save(model.optimizer.state_dict(), args.pth_file + '_optimizer.pth')
 
-# results, labels, test_loss, correct = T.test(model, test_loader)
+results, labels, test_loss, correct = T.test(model, test_loader)
 
-# T.roc_curve("ROC", results.cpu(), labels.cpu())
+T.roc_curve("ROC", results.cpu(), labels.cpu())
 
 # ./cnn_train.py -p ./machinehand_dataset.tensor -o ./machinehand_model.cnn.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
 
