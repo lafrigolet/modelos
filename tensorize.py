@@ -15,7 +15,6 @@ import torch
 
 from helpers import line_selector as LS
 from helpers import normalize_images as NI
-import machinehand_model as MHM
 
 # Create the parser
 parser = argparse.ArgumentParser(description='Command-line argument parser')
@@ -43,20 +42,20 @@ def tensorize(input_path, output_path):
     batches = [list(g) for k, g in groupby(enumerate(files), key=index)]
     i = 0
     normalized_tensors = []
+    to_pytorch_tensor  = transforms.ToTensor()
     for batch in batches:
         # print("Iteration ", i)
         # print("====================");
-        files = [file for _, file in batch]
-        imgs = [Image.open(file) for file in files]
-        to_pytorch_tensor  = transforms.ToTensor()
-        normalized_tensors = [to_pytorch_tensor(img) for img in imgs]
-        # print('normalized_tensors', len(normalized_tensors))
+        for _, file in batch:
+            img = Image.open(file)
+            tensor = to_pytorch_tensor(img)
+            # print('normalized_tensors', len(normalized_tensors))
+            base_name = os.path.basename(file)
+            filename = output_path + '/' + base_name + '.pt'
+            #print('Saving ', filename)
+            torch.save(tensor, filename)
 
-        for tensor in normalized_tensors:
-            torch.save(tensor, output_path + '/tensor_' + str(i) + '.pt')
-            i += 1
-
-    
+            
 tensorize(args.input_path, args.output_path)
 
 """

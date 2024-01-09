@@ -56,22 +56,22 @@ def crop_text(input_path, cropped_path, image_width, image_height):
     for batch in batches:
         print("Iteration ", i)
         print("====================");
-        files = [file for _, file in batch]
-        cv2_images = [cv2.imread(file, 0) for file in files]
-        print('cv2_images ', len(cv2_images))
-        cv2_cropped_images = []
-        for img in cv2_images:
-            cv2_cropped_images += crop_image(img, image_width, image_height)
-        print('cv2_cropped_images ', len(cv2_cropped_images))
-        pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
-        print('pil_cropped_images ', len(pil_cropped_images))
-        normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
-        print('normalized_images ', len(normalized_images))
+        for _, file in batch:
+            cv2_image = cv2.imread(file, 0)
+            cv2_cropped_images = crop_image(cv2_image, image_width, image_height)
+            print('cv2_cropped_images ', len(cv2_cropped_images))
+            pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
+            print('pil_cropped_images ', len(pil_cropped_images))
+            normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
+            print('normalized_images ', len(normalized_images))
 
-        for crop in normalized_images:
-            print('Saving ', cropped_path + '/crop_' + str(i) + '.jpg')
-            crop.save(cropped_path + '/crop_' + str(i) + '.jpg')
-            i += 1
+            base_name = os.path.basename(file)
+            filename_without_extension, _ = os.path.splitext(base_name)
+            for i, crop in enumerate(normalized_images):
+                filename = cropped_path + '/' + filename_without_extension + '.' + str(i) + '.jpg' 
+                # print('Saving ', filename)
+                crop.save(filename)
+                i += 1
             
     
 crop_text(args.input, args.output, args.width, args.height)

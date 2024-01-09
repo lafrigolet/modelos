@@ -16,6 +16,7 @@ import torch
 from helpers import line_selector as LS
 from helpers import normalize_images as NI
 import models.cnn as CNN
+import models.tools as T
 
 # Create the parser
 parser = argparse.ArgumentParser(description='Command-line argument parser')
@@ -30,7 +31,7 @@ args = parser.parse_args()
 print('args ', args)
 
 def hand_written(mhm, img):
-    output = CNN.eval(mhm, img)
+    output = T.eval(mhm, img)
     return output[0][0] < output[0][1]  # output[0] is probability of machine written, output[1] hand written
 
 def handwritten_filter(input_path, output_path, pth):
@@ -67,14 +68,17 @@ def handwritten_filter(input_path, output_path, pth):
         # pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
         # print('pil_cropped_images ', len(pil_cropped_images))
         # normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
-        normalized_images = [Image.open(file) for file in files]
+        normalized_tups = [(file, Image.open(file)) for file in files]
         # print('normalized_images ', len(normalized_images))
-        handwritten_images = [img for img in normalized_images if hand_written(mhm, img)]
+        handwritten_tups = [(file, img) for file, img in normalized_tups if hand_written(mhm, img)]
         # print('handwritten_images ', len(handwritten_images))
 
-        for img in handwritten_images:
-            filename = output_path + '/handwritten_' + str(i) + '.jpg'
-            # print('Saving ', filename)
+        for file, img in handwritten_tups:
+            base_name = os.path.basename(file)
+            filename_without_extension, _ = os.path.splitext(base_name)
+
+            filename = output_path + '/hw.' + base_name
+            #print('Saving ', filename)
             img.save(filename)
             i += 1
 
