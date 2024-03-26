@@ -35,6 +35,19 @@ class CustomDataset(Dataset):
         return self.data[index]
 
 
+class OnDiskDataset(Dataset):
+    def __init__(self, data):
+        # self.data = [(tensor.to(device), target) for tensor, target in data]
+        self.data = data
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        tensor, label = self.data[index] 
+        return (torch.load(tensor), label)
+    
+
 def test(model, loader):
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -115,8 +128,10 @@ def eval(model, img):
     return torch.exp(output)
 
 
-def roc_curve(title, results, labels):
-    x = [math.exp(result[1]) for result in results]
+def roc_curve(title, probabilities, labels, save_path=None):
+    # x = [math.exp(result[1]) for result in results]
+    # x = [F.softmax(result)[1] for result in results]
+    x = probabilities
     y = labels
 
     fpr, tpr, thresholds = SKL.roc_curve(y,x)
@@ -126,16 +141,18 @@ def roc_curve(title, results, labels):
     PLT.ylabel("TPR (sensibilidad, Recall)", fontsize=12, labelpad=10)
     PLT.title(title, fontsize=14)
     
+
     nlabels = int(len(thresholds) / 5)
 
-    """
     for cont in range(0,len(thresholds)):
         if not cont % nlabels:
-            PLT.text(fpr[cont], tpr[cont], "  {:.2f}".format(thresholds[cont]),color="blue")
-            PLT.plot(fpr[cont], tpr[cont],"o",color="blue")
-    """
-    
-    PLT.show()
+            PLT.text(fpr[cont], tpr[cont], "  {:.2f}".format(thresholds[cont]), color="blue")
+            PLT.plot(fpr[cont], tpr[cont], "o", color="blue")
 
-    return x, y
+    if save_path:
+        PLT.savefig(save_path)
+    else:
+        PLT.show()            
+
+    return fpr, tpr, thresholds
 
