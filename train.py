@@ -6,12 +6,12 @@ import argparse
 import os
 
 import models.tools as T
-import models.cnnlstm as CL
 
 # Create the parser
 parser = argparse.ArgumentParser(description='Command-line argument parser')
 
 # Add arguments
+parser.add_argument('-m', '--model', type=str, help='Model to use from models dir')
 parser.add_argument('-p', '--path', type=str, help='Path to the directory with tensor files')
 parser.add_argument('-o', '--pth_file', type=str, help='File name for the pth file for the model')
 parser.add_argument('-b', '--batch_size_train', type=int, help='size of the batch for training')
@@ -31,9 +31,19 @@ random_seed = 1
 torch.backends.cudnn.enabled = True
 torch.manual_seed(random_seed)
 
-# Build the Model
-model = CL.CNNLSTM(args.height, args.width)
+if (args.model.lower() == "cnn"):
+    import models.cnn as MODEL
+    model = MODEL.CNN(args.height, args.width)
+elif (args.model.lower() == "cnnlstm"):
+    import models.cnnlstm as MODEL
+    model = MODEL.CNNLSTM(args.height, args.width)
+else:
+    import sys
+    print("Error: unrecognized model in parameters, choose cnn or cnnlstm")
+    exit_code = 1
+    sys.exit(exit_code)
 
+    
 # Move the model to the GPU if available
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 model.to(device)
@@ -84,17 +94,17 @@ for i in range(0, args.nbatches):
 torch.save(model.state_dict(), args.pth_file)
 #torch.save(model.optimizer.state_dict(), args.pth_file + '_optimizer.pth')
 
-results, labels, test_loss, correct = T.test(model, test_loader)
+# results, labels, test_loss, correct = T.test(model, test_loader)
 
-T.roc_curve("ROC", results.cpu(), labels.cpu())
+# T.roc_curve("ROC", results.cpu(), labels.cpu())
 
-# ./cnnlstm_train.py -p ./machinehand_dataset.tensor -o ./machinehand_model.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
+# ./train.py --model cnnlstm -p ./machinehand_dataset.tensor -o ./machinehand_model.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
 
-# ./cnnlstm_train.py -p ./suicide_dataset.tensor -o ./suicide_model.cnnlstm.5.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 5
-# ./cnnlstm_train.py -p ./suicide_dataset.tensor -o ./suicide_model.cnnlstm.10.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 10
-# ./cnnlstm_train.py -p ./suicide_dataset.tensor -o ./suicide_model.cnnlstm.50.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 50
-# ./cnnlstm_train.py -p ./suicide_dataset.tensor -o ./suicide_model.cnnlstm.100.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 100
+# ./train.py --model cnnlstm -p ./suicide_dataset.tensor -o ./suicide_model.cnnlstm.5.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 5
+# ./train.py --model cnnlstm -p ./suicide_dataset.tensor -o ./suicide_model.cnnlstm.10.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 10
+# ./train.py --model cnnlstm -p ./suicide_dataset.tensor -o ./suicide_model.cnnlstm.50.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 50
+# ./train.py --model cnnlstm -p ./suicide_dataset.tensor -o ./suicide_model.cnnlstm.100.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 100
 
-# ./cnnlstm_train.py -p ./suicide_dataset.small.tensor -o ./suicide_model.small.cnnlstm.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
+# ./train.py --model cnnlstm -p ./suicide_dataset.small.tensor -o ./suicide_model.small.cnnlstm.pth -b 64 -s 1000 -e 70 -w 150 -t 40 -l 0.0001 -n 1
 
-# ./cnnlstm_train.py -p ./osborne_dataset.tensor -o ./osborne_model.cnnlstm.pth -b 64 -s 1000 -e 150 -w 150 -t 40 -l 0.0001 -n 1
+# ./train.py --model cnnlstm -p ./osborne_dataset.tensor -o ./osborne_model.cnnlstm.pth -b 64 -s 1000 -e 150 -w 150 -t 40 -l 0.0001 -n 1

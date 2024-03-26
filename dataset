@@ -1,0 +1,469 @@
+#!/usr/bin/env python
+
+# Documentation
+#    https://kislyuk.github.io/argcomplete/
+#
+#
+
+#
+# Installation
+#    pip install argcomplete
+#    activate-global-python-argcomplete
+#
+#
+#    In global completion mode, you don’t have to register each argcomplete-capable executable separately.
+#    Instead, the shell will look for the string PYTHON_ARGCOMPLETE_OK in the first 1024 bytes of any
+#    executable that it’s running completion for, and if it’s found, follow the rest of the argcomplete
+#    protocol as described above.
+#
+#    Additionally, completion is activated for scripts run as python <script> and python -m <module>.
+#    If you’re using multiple Python versions on the same system, the version being used to run the
+#    script must have argcomplete installed.
+
+#
+# Register your Python application with your shell’s completion framework by running register-python-argcomplete
+#    eval "$(register-python-argcomplete dataset)"
+# write the line on .bashrc
+#
+
+
+import argcomplete
+import argparse
+import os
+import shutil
+import random
+
+
+# Handlers
+def split_dataset(args):
+    def get_existing_prefixes(directory):
+        prefixes = set()
+        files = os.listdir(directory)
+        for file_name in files:
+            # Split the file name by "-" to get the prefix
+            prefix = file_name.split("-")[0]
+            prefixes.add(prefix)
+            
+        return prefixes
+
+    def split_prefixes(existing_prefixes, percentage_split):
+        # Convert percentage to actual count
+        total_prefixes = len(existing_prefixes)
+        prefixes_split1_count = int(total_prefixes * percentage_split)
+        prefixes_split2_count = total_prefixes - prefixes_split1_count
+    
+        # Randomly select prefixes for each split
+        existing_prefixes_list = list(existing_prefixes)
+        random.shuffle(existing_prefixes_list)
+    
+        prefixes_split1 = existing_prefixes_list[:prefixes_split1_count]
+        prefixes_split2 = existing_prefixes_list[prefixes_split1_count:]
+    
+        return prefixes_split1, prefixes_split2
+
+    def get_files_with_prefixes(prefixes_split1, directory):
+        files_with_prefixes = []
+
+        for prefix in prefixes_split1:
+            # Iterate through files in the directory
+            for file_name in os.listdir(directory):
+                # Check if the file name starts with the prefix
+                if file_name.startswith(prefix):
+                    files_with_prefixes.append(file_name)
+
+        return files_with_prefixes
+
+
+    print(args)
+    source_dir = args.source
+    percentage = args.percentage
+    split1_dir = args.split1
+    split2_dir = args.split2
+    
+    existing_prefixes = get_existing_prefixes(source_dir)
+    prefixes_split1, prefixes_split2 = split_prefixes(existing_prefixes, percentage)
+
+    #print("Existing prefixes:", existing_prefixes)
+    #print("Split 1 prefixes:", len(prefixes_split1), prefixes_split1)
+    #print("Split 2 prefixes:", len(prefixes_split2), prefixes_split2)
+
+    files_to_link_split1 = get_files_with_prefixes(prefixes_split1, source_dir)
+    files_to_link_split2 = get_files_with_prefixes(prefixes_split2, source_dir)
+
+    #print("Files with prefixes in prefixes_split1:", len(files_to_link_split1), files_to_link_split1)
+    #print("Files with prefixes in prefixes_split2:", len(files_to_link_split2), files_to_link_split2)
+
+    # Create split1 and split2 directories if they don't exist
+    os.makedirs(split1_dir, exist_ok=True)
+    os.makedirs(split2_dir, exist_ok=True)
+
+    # Get the list of files in the source directory
+    files = os.listdir(source_dir)
+
+    # Create symbolic links to split1 directory
+    for file_name in files_to_link_split1:
+        source_path = os.path.join(source_dir, file_name)
+        destination_path = os.path.join(split1_dir, file_name)
+        os.symlink(os.path.abspath(source_path), destination_path)
+
+    # Create symbolic links to split2 directory
+    for file_name in files_to_link_split2:
+        source_path = os.path.join(source_dir, file_name)
+        destination_path = os.path.join(split2_dir, file_name)
+        os.symlink(os.path.abspath(source_path), destination_path)
+
+
+def crop_dataset(args):
+    from itertools import groupby
+    import cv2
+    from PIL import Image
+    import torchvision.transforms as transforms
+    import torch
+    from helpers import line_selector as LS
+    from helpers import normalize_images as NI
+
+    def crop_image(img, image_width, image_height):
+        page = LS.handwritten_text_line_detection(img,dpi=300,break_connected_lines=False,
+                                                  dilate_ink=True,min_word_dimmension=10)
+        numpy_cropped_images  = LS.crop_page(page, image_height, image_width)
+        
+        return numpy_cropped_images
+
+
+    def crop_text(input_path, cropped_path, image_width, image_height):
+        #print('input path ', input_path)
+        #print('cropped path ', cropped_path)
+
+        os.makedirs(cropped_path, exist_ok = True)
+
+        files = [input_path  + '/' + file for file in os.listdir(input_path)]
+
+        def index(f):
+            i, _ = f
+            return i // 10
+    
+        # batch files in size 10 batches
+        # files need to be batched for avoiding memory fullfilling
+        batches = [list(g) for k, g in groupby(enumerate(files), key=index)]
+        i = 0
+        normalized_tensors = []
+        for batch in batches:
+            #print("Iteration ", i)
+            #print("====================");
+            for _, file in batch:
+                #print(file)
+                cv2_image = cv2.imread(file, 0)
+                cv2_cropped_images = crop_image(cv2_image, image_width, image_height)
+                #print('cv2_cropped_images ', len(cv2_cropped_images))
+                pil_cropped_images = [Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) for img in cv2_cropped_images]
+                #print('pil_cropped_images ', len(pil_cropped_images))
+                normalized_images  = [NI.normalize_image(img, image_width, image_height) for img in pil_cropped_images]
+                #print('normalized_images ', len(normalized_images))
+
+                base_name = os.path.basename(file)
+                filename_without_extension, _ = os.path.splitext(base_name)
+                for i, crop in enumerate(normalized_images):
+                    filename = cropped_path + '/' + filename_without_extension + '.' + str(i) + '.jpg' 
+                    # print('Saving ', filename)
+                    crop.save(filename)
+                    i += 1
+
+    print(args)
+    crop_text(args.source, args.destination, args.width, args.height)                    
+
+def filter_dataset(args):
+    import os
+    from itertools import groupby
+    import cv2
+    from PIL import Image
+    import torchvision.transforms as transforms
+    import torch
+    from helpers import line_selector as LS
+    from helpers import normalize_images as NI
+    import models.cnn as CNN
+    import models.tools as T
+
+    def hand_written(mhm, img):
+        output = T.eval(mhm, img)
+        return output[0][0] < output[0][1]  # output[0] is probability of machine written, output[1] hand written
+
+    def handwritten_filter(input_path, output_path, pth):
+        #print('input path ', input_path)
+        #print('output path ', output_path)
+        #print('mhm_file ', pth)
+        mhm = CNN.CNN(40, 150)
+        mhm.load_state_dict(torch.load(pth))
+        mhm.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        
+        os.makedirs(output_path, exist_ok = True)
+        
+        files = [input_path  + '/' + file for file in os.listdir(input_path)]
+        
+        def index(f):
+            i, _ = f
+            return i // 10
+    
+        # batch files in size 10 batches
+        # files need to be batched for avoiding memory fullfilling
+        batches = [list(g) for k, g in groupby(enumerate(files), key=index)]
+        i = 0
+        normalized_tensors = []
+        for batch in batches:
+            files = [file for _, file in batch]
+            normalized_tups = [(file, Image.open(file)) for file in files]
+            handwritten_tups = [(file, img) for file, img in normalized_tups if hand_written(mhm, img)]
+            
+            for file, img in handwritten_tups:
+                base_name = os.path.basename(file)
+                filename_without_extension, extension = os.path.splitext(base_name)
+                filename = f"{output_path}/{filename_without_extension}.{i}{extension}"
+                img.save(filename)
+                i += 1
+
+    
+    print(args)
+    handwritten_filter(args.source, args.destination, args.mhm)
+    
+def balancedown_dataset(args):
+    dir1 = args.dir1
+    dir2 = args.dir2
+    
+    # Get the list of files in each directory
+    files_dir1 = [f for f in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, f))]
+    files_dir2 = [f for f in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, f))]
+
+    # Calculate the difference in the number of files
+    diff = len(files_dir1) - len(files_dir2)
+
+    if diff > 0:
+        # Remove random files from dir1
+        files_to_remove = random.sample(files_dir1, diff)
+        for file_name in files_to_remove:
+            file_path = os.path.join(dir1, file_name)
+            os.remove(file_path)
+            #print(f"Removed: {file_path}")
+    elif diff < 0:
+        # Remove random files from dir2
+        files_to_remove = random.sample(files_dir2, abs(diff))
+        for file_name in files_to_remove:
+            file_path = os.path.join(dir2, file_name)
+            os.remove(file_path)
+            #print(f"Removed: {file_path}")
+    else:
+        print("Directories already have the same number of files.")
+
+    print(args)
+    pass
+
+def balanceup_dataset(args):
+    import shutil
+    
+    def clone_file(source_path):
+        # Extract the filename and extension
+        filename, file_extension = os.path.splitext(os.path.basename(source_path))
+        directory = os.path.dirname(source_path)
+        
+        # Generate a new filename with an index
+        index = 1
+        new_filename = f"{filename}.{index}{file_extension}"
+        new_path = os.path.join(directory, new_filename)
+
+        while os.path.exists(new_path):
+            #print(f"Exists: {new_path}")
+            index += 1
+            new_filename = f"{filename}.{index}{file_extension}"
+            new_path = os.path.join(directory, new_filename)
+            
+
+        # Copy the file by linking to the target directory
+        
+        #print(f"os.symlink({source_path}, {new_path})")
+        #os.symlink(os.path.abspath(source_path, new_path)
+        shutil.copy(source_path, new_path)
+        #print(f"Copied: {source_path} from source to target as {new_path}")
+        
+
+    dir1 = args.dir1
+    dir2 = args.dir2
+    
+    # Get the list of files in each directory
+    files_dir1 = [f for f in os.listdir(dir1) if os.path.isfile(os.path.join(dir1, f))]
+    files_dir2 = [f for f in os.listdir(dir2) if os.path.isfile(os.path.join(dir2, f))]
+
+    # Calculate the difference in the number of files
+    diff = len(files_dir1) - len(files_dir2)
+
+    if diff > 0:
+        # Expand dir2
+        files_to_clone = random.choices(files_dir2, k=diff)
+        for file_name in files_to_clone:
+            clone_file(os.path.join(dir2, file_name))
+    elif diff < 0:
+        # Expand dir1
+        files_to_clone = random.choices(files_dir1, k=abs(diff))
+        for file_name in files_to_clone:
+            clone_file(os.path.join(dir1, file_name))
+    else:
+        print("Directories already have the same number of files.")
+
+    print(args)
+
+
+def intersect_dataset(args):
+    def extract_prefixes_from_directory(directory):
+        prefixes = set()
+        files = os.listdir(directory)
+
+        for file_name in files:
+            prefix = file_name.split("-")[0]  # Extract prefix
+            prefixes.add(prefix)
+            
+        return prefixes
+
+    def intersection_of_prefixes(dir1, dir2):
+        prefixes_set1 = extract_prefixes_from_directory(dir1)
+        prefixes_set2 = extract_prefixes_from_directory(dir2)
+    
+        intersection = prefixes_set1.intersection(prefixes_set2)
+    
+        return intersection
+
+    intersection = intersection_of_prefixes(args.dir1, args.dir2)
+    print("Intersection of prefixes between directories:", intersection)
+    
+    
+def tensorize_dataset(args):
+    from itertools import groupby
+    import cv2
+    from PIL import Image
+    import torchvision.transforms as transforms
+    import torch
+    from helpers import line_selector as LS
+    from helpers import normalize_images as NI
+
+    print(args)
+
+    os.makedirs(args.destination, exist_ok = True)
+
+    files = [args.source  + '/' + file for file in os.listdir(args.source)]
+
+    def index(f):
+        i, _ = f
+        return i // 10
+    
+    # batch files in size 10 batches
+    batches = [list(g) for k, g in groupby(enumerate(files), key=index)]
+    i = 0
+    normalized_tensors = []
+    to_pytorch_tensor  = transforms.ToTensor()
+    for batch in batches:
+        # print("Iteration ", i)
+        # print("====================");
+        for _, file in batch:
+            img = Image.open(file)
+            tensor = to_pytorch_tensor(img)
+            # print('normalized_tensors', len(normalized_tensors))
+            base_name = os.path.basename(file)
+            filename = args.destination + '/' + base_name + '.pt'
+            #print('Saving ', filename)
+            torch.save(tensor, filename)
+
+
+def main():
+    parser = argparse.ArgumentParser(description='dataset management command-line utility')
+
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+
+    # Subparser for the 'split' command
+    split_parser        = subparsers.add_parser('split', help='Test Cases Command')
+    #    split_subparsers    = split_parser.add_subparsers(dest='command', help='Available commands')
+    split_parser.add_argument("--source", type=str, help="Source directory to split")
+    split_parser.add_argument("--percentage", type=float, help="Percentage of files to move to split1")
+    split_parser.add_argument("--split1", type=str, help="Destination directory for split1")
+    split_parser.add_argument("--split2", type=str, help="Destination directory for split2")
+    split_parser.set_defaults(handler=split_dataset)
+    
+    # Subparser for the 'crop' command
+    crop_parser        = subparsers.add_parser('crop', help='Test Cases Command')
+    crop_parser.add_argument("--source", type=str, help="Source directory to crop")
+    crop_parser.add_argument("--destination", type=str, help="Destination directory for cropped files")
+    crop_parser.add_argument('--width', type=int, help='Cropped image width')
+    crop_parser.add_argument('--height', type=int, help='Cropped image height')
+    crop_parser.set_defaults(handler=crop_dataset)
+
+    # Subparser for the 'filter' command
+    filter_parser        = subparsers.add_parser('filter', help='Test Cases Command')
+    filter_parser.add_argument("--source", type=str, help="Source directory to filter")
+    filter_parser.add_argument("--destination", type=str, help="Destination directory for filtered files")
+    filter_parser.add_argument("--mhm", type=str, help="Machine Hand Model pth file")
+    filter_parser.set_defaults(handler=filter_dataset)
+
+    # Subparser for the 'balancedown' command
+    balancedown_parser = subparsers.add_parser('balancedown', help='Equalize the number of files in dir1 and dir2 by removing randomly files')
+    balancedown_parser.add_argument("--dir1", type=str, help="Source directory to balancedown")
+    balancedown_parser.add_argument("--dir2", type=str, help="Destination directory for balancedowned files")
+    balancedown_parser.set_defaults(handler=balancedown_dataset)
+
+    # Subparser for the 'balanceup' command
+    balanceup_parser = subparsers.add_parser('balanceup', help='Equalize the number of files in dir1 and dir2 by removing randomly files')
+    balanceup_parser.add_argument("--dir1", type=str, help="Source directory to balanceup")
+    balanceup_parser.add_argument("--dir2", type=str, help="Destination directory for balanceuped files")
+    balanceup_parser.set_defaults(handler=balanceup_dataset)
+
+    # Subparser for the 'intersection' command
+    intersection_parser = subparsers.add_parser('intersection', help='Equalize the number of files in dir1 and dir2 by removing randomly files')
+    intersection_parser.add_argument("--dir1", type=str, help="Directory 1 to intersects")
+    intersection_parser.add_argument("--dir2", type=str, help="Directory 2 to intersects")
+    intersection_parser.set_defaults(handler=intersect_dataset)
+
+    # Subparser for the 'tensorize' command
+    tensorize_parser        = subparsers.add_parser('tensorize', help='Build pytorch tensors from image files')
+    tensorize_parser.add_argument("--source", type=str, help="Source directory to tensorize")
+    tensorize_parser.add_argument("--destination", type=str, help="Destination directory for tensorizeed files")
+    tensorize_parser.set_defaults(handler=tensorize_dataset)
+
+    # Enable argcomplete for the parser
+    argcomplete.autocomplete(parser)
+
+    args = parser.parse_args()
+
+    if args.command:
+        handler = getattr(args, 'handler', None)
+        if handler:
+            handler(args)
+        else:
+            print(f"{args.command} not implemented yet")
+    else:
+        print("No command specified.")
+
+
+if __name__ == '__main__':
+    main()
+
+
+########################################################################################################################
+# EXAMPLES OF USE
+#
+#  dataset split --source suicide_dataset/0 --percentage 0.20 --split1 suicide_dataset.1/test/0 --split2 suicide_dataset.1/train/0
+#  dataset split --source suicide_dataset/1 --percentage 0.20 --split1 suicide_dataset.1/test/1 --split2 suicide_dataset.1/train/1
+#
+#  dataset crop --source suicide_dataset.1/test/0 --destination suicide_dataset.1/cropped/test/0 --width 150 --height 40
+#  dataset crop --source suicide_dataset.1/test/1 --destination suicide_dataset.1/cropped/test/1 --width 150 --height 40
+#  dataset crop --source suicide_dataset.1/train/0 --destination suicide_dataset.1/cropped/train/0 --width 150 --height 40
+#  dataset crop --source suicide_dataset.1/train/1 --destination suicide_dataset.1/cropped/train/1 --width 150 --height 40
+#
+#  dataset filter --source suicide_dataset.1/cropped/test/0 --destination suicide_dataset.1/filterhw/test/0 --mhm machinehand_model.pth
+#  dataset filter --source suicide_dataset.1/cropped/test/1 --destination suicide_dataset.1/filterhw/test/1 --mhm machinehand_model.pth
+#  dataset filter --source suicide_dataset.1/cropped/train/0 --destination suicide_dataset.1/filterhw/train/0 --mhm machinehand_model.pth
+#  dataset filter --source suicide_dataset.1/cropped/train/1 --destination suicide_dataset.1/filterhw/train/1 --mhm machinehand_model.pth
+#
+#
+#  dataset tensorize --source suicide_dataset.1/filterhw/test/0 --destination suicide_dataset.1/tensors/test/0
+#  dataset tensorize --source suicide_dataset.1/filterhw/test/1 --destination suicide_dataset.1/tensors/test/1
+#  dataset tensorize --source suicide_dataset.1/filterhw/train/0 --destination suicide_dataset.1/tensors/train/0
+#  dataset tensorize --source suicide_dataset.1/filterhw/train/1 --destination suicide_dataset.1/tensors/train/1
+#
+#  dataset balanceup --dir1 suicide_dataset.1/filterhw/test/0 --dir2 suicide_dataset.1/filterhw/test/1
+#  dataset balanceup --dir1 suicide_dataset.1/filterhw/train/0 --dir2 suicide_dataset.1/filterhw/train/1
+
+
